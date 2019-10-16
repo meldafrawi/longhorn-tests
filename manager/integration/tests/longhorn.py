@@ -10,6 +10,8 @@ import os
 import json
 import time
 import operator
+from functools import reduce
+
 try:
     import argcomplete
 except ImportError:
