@@ -613,7 +613,7 @@ def pod_make(request):
             try:
                 delete_and_wait_pod(api, pod_manifest['metadata']['name'])
             except Exception as e:
-                print "Exception when waiting for pod deletion", e
+                print("Exception when waiting for pod deletion", e)
                 return
 
         request.addfinalizer(finalizer)
@@ -984,7 +984,7 @@ def cleanup_client(client):
         try:
             client.delete(v)
         except Exception as e:
-            print "Exception when cleanup volume ", v, e
+            print("Exception when cleanup volume ", v, e)
             pass
     images = client.list_engine_image()
     for img in images:
@@ -993,7 +993,7 @@ def cleanup_client(client):
             try:
                 client.delete(img)
             except Exception as e:
-                print "Exception when cleanup image", img, e
+                print("Exception when cleanup image", img, e)
                 pass
 
     # enable nodes scheduling
@@ -1875,7 +1875,7 @@ def reset_node(client):
             wait_for_node_update(client, node["id"],
                                  "allowScheduling", True)
         except Exception as e:
-            print "Exception when reset node schedulding", node, e
+            print("Exception when reset node schedulding", node, e)
             pass
 
 
@@ -1900,7 +1900,7 @@ def cleanup_test_disks(client):
                     wait_for_disk_status(client, host_id, fsid,
                                          "allowScheduling", False)
     except Exception as e:
-        print "Exception when update node disks", node, e
+        print("Exception when update node disks", node, e)
         pass
 
     # delete test disks
@@ -1913,14 +1913,14 @@ def cleanup_test_disks(client):
         node.diskUpdate(disks=update_disks)
         wait_for_disk_update(client, host_id, len(update_disks))
     except Exception as e:
-        print "Exception when delete node test disks", node, e
+        print("Exception when delete node test disks", node, e)
         pass
     # cleanup host disks
     for del_dir in del_dirs:
         try:
             cleanup_host_disk(del_dir)
         except Exception as e:
-            print "Exception when cleanup host disk", del_dir, e
+            print("Exception when cleanup host disk", del_dir, e)
             pass
 
 
@@ -1960,9 +1960,9 @@ def reset_settings(client):
         client.update(minimal_setting,
                       value=DEFAULT_STORAGE_MINIMAL_AVAILABLE_PERCENTAGE)
     except Exception as e:
-        print "Exception when update " \
-              "storage minimal available percentage settings", \
-            minimal_setting, e
+        print("Exception when update "
+              "storage minimal available percentage settings",
+              minimal_setting, e)
         pass
 
     over_provisioning_setting = client.by_id_setting(
@@ -1971,9 +1971,9 @@ def reset_settings(client):
         client.update(over_provisioning_setting,
                       value=DEFAULT_STORAGE_OVER_PROVISIONING_PERCENTAGE)
     except Exception as e:
-        print "Exception when update " \
-              "storage over provisioning percentage settings", \
-            over_provisioning_setting, e
+        print("Exception when update "
+              "storage over provisioning percentage settings",
+              over_provisioning_setting, e)
 
     default_data_path_setting = client.by_id_setting(
         SETTING_DEFAULT_DATA_PATH)
@@ -1981,9 +1981,9 @@ def reset_settings(client):
         client.update(default_data_path_setting,
                       value=DEFAULT_DISK_PATH)
     except Exception as e:
-        print "Exception when update " \
-              "default data path setting", \
-            default_data_path_setting, e
+        print("Exception when update "
+              "default data path setting",
+              default_data_path_setting, e)
 
     create_default_disk_labeled_nodes_setting = client.by_id_setting(
         SETTING_CREATE_DEFAULT_DISK_LABELED_NODES)
@@ -1991,9 +1991,9 @@ def reset_settings(client):
         client.update(create_default_disk_labeled_nodes_setting,
                       value="false")
     except Exception as e:
-        print "Exception when update " \
-              "create default disk labeled nodes setting", \
-            create_default_disk_labeled_nodes_setting, e
+        print("Exception when update "
+              "create default disk labeled nodes setting",
+              create_default_disk_labeled_nodes_setting, e)
 
 
 def reset_engine_image(client):
