@@ -2097,10 +2097,14 @@ def check_longhorn(core_api):
     has_ui = False
     has_instance_manager = False
 
+    pod_running = True
+
     try:
-        longhorn_pod_list = core_api.list_namespaced_pod(
-            'longhorn-system', include_uninitialized=False)
+        longhorn_pod_list = core_api.list_namespaced_pod('longhorn-system')
         for item in longhorn_pod_list.items:
+            if item.status.phase != "Running":
+                pod_running = False
+
             labels = item.metadata.labels
             if not labels:
                 pass
@@ -2116,7 +2120,7 @@ def check_longhorn(core_api):
                 has_instance_manager = True
 
         if has_engine_image and has_driver_deployer and has_manager and has_ui\
-                and has_instance_manager:
+                and has_instance_manager and pod_running:
             ready = True
 
     except ApiException as e:
