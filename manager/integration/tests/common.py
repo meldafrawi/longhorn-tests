@@ -2137,10 +2137,14 @@ def check_csi(core_api):
     has_provisioner = False
     has_csi_plugin = False
 
+    pod_running = True
+
     try:
-        longhorn_pod_list = core_api.list_namespaced_pod(
-            'longhorn-system', include_uninitialized=False)
+        longhorn_pod_list = core_api.list_namespaced_pod('longhorn-system')
         for item in longhorn_pod_list.items:
+            if item.status.phase != "Running":
+                pod_running = False
+
             labels = item.metadata.labels
             if not labels:
                 pass
@@ -2151,9 +2155,10 @@ def check_csi(core_api):
             elif labels.get('app', '') == 'longhorn-csi-plugin':
                 has_csi_plugin = True
 
-        if has_attacher and has_provisioner and has_csi_plugin:
+        if has_attacher and has_provisioner and has_csi_plugin and pod_running:
             using_csi = CSI_TRUE
-        elif not has_attacher and not has_provisioner and not has_csi_plugin:
+        elif not has_attacher and not has_provisioner \
+                and not has_csi_plugin and not pod_running:
             using_csi = CSI_FALSE
 
     except ApiException as e:
