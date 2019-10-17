@@ -195,8 +195,8 @@ class GdapiClient(object):
     def __init__(self, access_key=None, secret_key=None, url=None, cache=False,
                  cache_time=86400, strict=False, headers=HEADERS, **kw):
         self._headers = headers
-        self._access_key = access_key
-        self._secret_key = secret_key
+        self._access_key = access_key.__str__()
+        self._secret_key = secret_key.__str__()
         self._auth = (self._access_key, self._secret_key)
         self._url = url
         self._cache = cache
