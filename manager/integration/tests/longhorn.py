@@ -468,7 +468,7 @@ class GdapiClient(object):
 
         if isinstance(value, RestObject):
             ret = {}
-            for k, v in vars(value).iteritems():
+            for k, v in vars(value).items():
                 if not k.startswith('_') and \
                         not isinstance(v, RestObject) and not callable(v):
                     ret[k] = self._to_value(v)
