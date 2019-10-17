@@ -45,24 +45,24 @@ from common import create_snapshot
 
 @pytest.mark.coretest   # NOQA
 def test_hosts(clients):  # NOQA
-    hosts = clients.itervalues().next().list_node()
+    hosts = next(iter(clients.values())).list_node()
     for host in hosts:
-        assert host["name"] is not None
-        assert host["address"] is not None
+        assert host.name is not None
+        assert host.address is not None
 
     host_id = []
-    for i in range(0, len(hosts)):
-        host_id.append(hosts[i]["name"])
+    for i in range(0, hosts.data.__len__()):
+        host_id.append(hosts.data[i].name)
 
     host0_from_i = {}
-    for i in range(0, len(hosts)):
-        if len(host0_from_i) == 0:
+    for i in range(0, hosts.data.__len__()):
+        if host0_from_i.__len__() == 0:
             host0_from_i = clients[host_id[0]].by_id_node(host_id[0])
         else:
-            assert host0_from_i["name"] == \
-                clients[host_id[i]].by_id_node(host_id[0])["name"]
-            assert host0_from_i["address"] == \
-                clients[host_id[i]].by_id_node(host_id[0])["address"]
+            assert host0_from_i.name == \
+                clients[host_id[i]].by_id_node(host_id[0]).name
+            assert host0_from_i.address == \
+                clients[host_id[i]].by_id_node(host_id[0]).address
 
 
 @pytest.mark.coretest   # NOQA
