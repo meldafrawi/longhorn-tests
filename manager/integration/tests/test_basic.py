@@ -168,11 +168,11 @@ def test_volume_basic(clients, volume_name):  # NOQA
 
 
 def volume_basic_test(clients, volume_name, base_image=""):  # NOQA
-    num_hosts = len(clients)
+    num_hosts = clients.__len__()
     num_replicas = 3
 
     # get a random client
-    for host_id, client in clients.iteritems():
+    for host_id, client in iter(clients.items()):
         break
 
     with pytest.raises(Exception):
@@ -188,16 +188,16 @@ def volume_basic_test(clients, volume_name, base_image=""):  # NOQA
                                      base_image)
 
     def validate_volume_basic(expected, actual):
-        assert actual["name"] == expected["name"]
-        assert actual["size"] == expected["size"]
-        assert actual["numberOfReplicas"] == expected["numberOfReplicas"]
-        assert actual["frontend"] == "blockdev"
-        assert actual["baseImage"] == base_image
-        assert actual["state"] == expected["state"]
-        assert actual["created"] == expected["created"]
+        assert actual.name == expected.name
+        assert actual.size == expected.size
+        assert actual.numberOfReplicas == expected.numberOfReplicas
+        assert actual.frontend == "blockdev"
+        assert actual.baseImage == base_image
+        assert actual.state == expected.state
+        assert actual.created == expected.created
 
-    volumes = client.list_volume()
-    assert len(volumes) == 1
+    volumes = client.list_volume().data
+    assert volumes.__len__() == 1
     validate_volume_basic(volume, volumes[0])
 
     volumeByName = client.by_id_volume(volume_name)
@@ -213,22 +213,22 @@ def volume_basic_test(clients, volume_name, base_image=""):  # NOQA
 
     # validate soft anti-affinity
     hosts = {}
-    for replica in volume["replicas"]:
-        id = replica["hostId"]
+    for replica in volume.replicas:
+        id = replica.hostId
         assert id != ""
         hosts[id] = True
     if num_hosts >= num_replicas:
-        assert len(hosts) == num_replicas
+        assert hosts.__len__() == num_replicas
     else:
-        assert len(hosts) == num_hosts
+        assert hosts.__len__() == num_hosts
 
-    volumes = client.list_volume()
-    assert len(volumes) == 1
-    assert volumes[0]["name"] == volume["name"]
-    assert volumes[0]["size"] == volume["size"]
-    assert volumes[0]["numberOfReplicas"] == volume["numberOfReplicas"]
-    assert volumes[0]["state"] == volume["state"]
-    assert volumes[0]["created"] == volume["created"]
+    volumes = client.list_volume().data
+    assert volumes.__len__() == 1
+    assert volumes[0].name == volume.name
+    assert volumes[0].size == volume.size
+    assert volumes[0].numberOfReplicas == volume.numberOfReplicas
+    assert volumes[0].state == volume.state
+    assert volumes[0].created == volume.created
     assert get_volume_endpoint(volumes[0]) == DEV_PATH + volume_name
 
     volume = client.by_id_volume(volume_name)
@@ -245,7 +245,7 @@ def test_volume_iscsi_basic(clients, volume_name):  # NOQA
 
 def volume_iscsi_basic_test(clients, volume_name, base_image=""):  # NOQA
     # get a random client
-    for host_id, client in clients.iteritems():
+    for host_id, client in iter(clients.items()):
         break
 
     volume = create_and_check_volume(client, volume_name, 3, SIZE, base_image,
@@ -254,13 +254,13 @@ def volume_iscsi_basic_test(clients, volume_name, base_image=""):  # NOQA
     volume = common.wait_for_volume_healthy(client, volume_name)
 
     volumes = client.list_volume()
-    assert len(volumes) == 1
-    assert volumes[0]["name"] == volume["name"]
-    assert volumes[0]["size"] == volume["size"]
-    assert volumes[0]["numberOfReplicas"] == volume["numberOfReplicas"]
-    assert volumes[0]["state"] == volume["state"]
-    assert volumes[0]["created"] == volume["created"]
-    assert volumes[0]["frontend"] == "iscsi"
+    assert volumes.__len__() == 1
+    assert volumes[0].name == volume.name
+    assert volumes[0].size == volume.size
+    assert volumes[0].numberOfReplicas == volume.numberOfReplicas
+    assert volumes[0].state == volume.state
+    assert volumes[0].created == volume.created
+    assert volumes[0].frontend == "iscsi"
     endpoint = get_volume_endpoint(volumes[0])
     assert endpoint.startswith("iscsi://")
 
@@ -279,7 +279,7 @@ def test_snapshot(clients, volume_name, base_image=""):  # NOQA
 
 
 def snapshot_test(clients, volume_name, base_image):  # NOQA
-    for host_id, client in clients.iteritems():
+    for host_id, client in iter(clients.items()):
         break
 
     volume = create_and_check_volume(client, volume_name,
@@ -303,44 +303,44 @@ def snapshot_test(clients, volume_name, base_image):  # NOQA
     snapshots = volume.snapshotList()
     snapMap = {}
     for snap in snapshots:
-        snapMap[snap["name"]] = snap
+        snapMap[snap.name] = snap
 
-    assert snapMap[snap1["name"]]["name"] == snap1["name"]
-    assert snapMap[snap1["name"]]["removed"] is False
-    assert snapMap[snap2["name"]]["name"] == snap2["name"]
-    assert snapMap[snap2["name"]]["parent"] == snap1["name"]
-    assert snapMap[snap2["name"]]["removed"] is False
-    assert snapMap[snap3["name"]]["name"] == snap3["name"]
-    assert snapMap[snap3["name"]]["parent"] == snap2["name"]
-    assert snapMap[snap3["name"]]["removed"] is False
+    assert snapMap[snap1.name].name == snap1.name
+    assert snapMap[snap1.name].removed is False
+    assert snapMap[snap2.name].name == snap2.name
+    assert snapMap[snap2.name].parent == snap1.name
+    assert snapMap[snap2.name].removed is False
+    assert snapMap[snap3.name].name == snap3.name
+    assert snapMap[snap3.name].parent == snap2.name
+    assert snapMap[snap3.name].removed is False
 
-    volume.snapshotDelete(name=snap3["name"])
+    volume.snapshotDelete(name=snap3.name)
     check_volume_data(volume, snap3_data)
 
     snapshots = volume.snapshotList(volume=volume_name)
     snapMap = {}
     for snap in snapshots:
-        snapMap[snap["name"]] = snap
+        snapMap[snap.name] = snap
 
-    assert snapMap[snap1["name"]]["name"] == snap1["name"]
-    assert snapMap[snap1["name"]]["removed"] is False
-    assert snapMap[snap2["name"]]["name"] == snap2["name"]
-    assert snapMap[snap2["name"]]["parent"] == snap1["name"]
-    assert snapMap[snap2["name"]]["removed"] is False
-    assert snapMap[snap3["name"]]["name"] == snap3["name"]
-    assert snapMap[snap3["name"]]["parent"] == snap2["name"]
-    assert len(snapMap[snap3["name"]]["children"]) == 1
-    assert "volume-head" in snapMap[snap3["name"]]["children"]
-    assert snapMap[snap3["name"]]["removed"] is True
+    assert snapMap[snap1.name].name == snap1.name
+    assert snapMap[snap1.name].removed is False
+    assert snapMap[snap2.name].name == snap2.name
+    assert snapMap[snap2.name].parent == snap1.name
+    assert snapMap[snap2.name].removed is False
+    assert snapMap[snap3.name].name == snap3.name
+    assert snapMap[snap3.name].parent == snap2.name
+    assert len(snapMap[snap3.name].children) == 1
+    assert "volume-head" in snapMap[snap3.name].children
+    assert snapMap[snap3.name].removed is True
 
-    snap = volume.snapshotGet(name=snap3["name"])
-    assert snap["name"] == snap3["name"]
-    assert snap["parent"] == snap3["parent"]
-    assert len(snap3["children"]) == 1
-    assert len(snap["children"]) == 1
-    assert "volume-head" in snap3["children"]
-    assert "volume-head" in snap["children"]
-    assert snap["removed"] is True
+    snap = volume.snapshotGet(name=snap3.name)
+    assert snap.name == snap3.name
+    assert snap.parent == snap3.parent
+    assert len(snap3.children) == 1
+    assert len(snap.children) == 1
+    assert "volume-head" in snap3.children
+    assert "volume-head" in snap.children
+    assert snap.removed is True
 
     volume.detach()
     volume = common.wait_for_volume_detached(client, volume_name)
@@ -350,11 +350,11 @@ def snapshot_test(clients, volume_name, base_image):  # NOQA
 
     volume = client.by_id_volume(volume_name)
     engine = get_volume_engine(volume)
-    assert volume["disableFrontend"] is True
-    assert volume["frontend"] == "blockdev"
-    assert engine["endpoint"] == ""
+    assert volume.disableFrontend is True
+    assert volume.frontend == "blockdev"
+    assert engine.endpoint == ""
 
-    volume.snapshotRevert(name=snap2["name"])
+    volume.snapshotRevert(name=snap2.name)
 
     volume.detach()
     volume = common.wait_for_volume_detached(client, volume_name)
@@ -363,47 +363,47 @@ def snapshot_test(clients, volume_name, base_image):  # NOQA
     common.wait_for_volume_healthy(client, volume_name)
 
     volume = client.by_id_volume(volume_name)
-    assert volume["disableFrontend"] is False
-    assert volume["frontend"] == "blockdev"
+    assert volume.disableFrontend is False
+    assert volume.frontend == "blockdev"
 
     check_volume_data(volume, snap2_data)
 
     snapshots = volume.snapshotList(volume=volume_name)
     snapMap = {}
     for snap in snapshots:
-        snapMap[snap["name"]] = snap
+        snapMap[snap.name] = snap
 
-    assert snapMap[snap1["name"]]["name"] == snap1["name"]
-    assert snapMap[snap1["name"]]["removed"] is False
-    assert snapMap[snap2["name"]]["name"] == snap2["name"]
-    assert snapMap[snap2["name"]]["parent"] == snap1["name"]
-    assert "volume-head" in snapMap[snap2["name"]]["children"]
-    assert snap3["name"] in snapMap[snap2["name"]]["children"]
-    assert snapMap[snap2["name"]]["removed"] is False
-    assert snapMap[snap3["name"]]["name"] == snap3["name"]
-    assert snapMap[snap3["name"]]["parent"] == snap2["name"]
-    assert len(snapMap[snap3["name"]]["children"]) == 0
-    assert snapMap[snap3["name"]]["removed"] is True
+    assert snapMap[snap1.name].name == snap1.name
+    assert snapMap[snap1.name].removed is False
+    assert snapMap[snap2.name].name == snap2.name
+    assert snapMap[snap2.name].parent == snap1.name
+    assert "volume-head" in snapMap[snap2.name].children
+    assert snap3.name in snapMap[snap2.name].children
+    assert snapMap[snap2.name].removed is False
+    assert snapMap[snap3.name].name == snap3.name
+    assert snapMap[snap3.name].parent == snap2.name
+    assert len(snapMap[snap3.name].children) == 0
+    assert snapMap[snap3.name].removed is True
 
-    volume.snapshotDelete(name=snap1["name"])
-    volume.snapshotDelete(name=snap2["name"])
+    volume.snapshotDelete(name=snap1.name)
+    volume.snapshotDelete(name=snap2.name)
 
     volume.snapshotPurge()
-    volume = wait_for_snapshot_purge(client, volume_name, snap1["name"],
-                                     snap3["name"])
+    volume = wait_for_snapshot_purge(client, volume_name, snap1.name,
+                                     snap3.name)
 
     snapshots = volume.snapshotList(volume=volume_name)
     snapMap = {}
     for snap in snapshots:
-        snapMap[snap["name"]] = snap
-    assert snap1["name"] not in snapMap
-    assert snap3["name"] not in snapMap
+        snapMap[snap.name] = snap
+    assert snap1.name not in snapMap
+    assert snap3.name not in snapMap
 
     # it's the parent of volume-head, so it cannot be purged at this time
-    assert snapMap[snap2["name"]]["name"] == snap2["name"]
-    assert snapMap[snap2["name"]]["parent"] == ""
-    assert "volume-head" in snapMap[snap2["name"]]["children"]
-    assert snapMap[snap2["name"]]["removed"] is True
+    assert snapMap[snap2.name].name == snap2.name
+    assert snapMap[snap2.name].parent == ""
+    assert "volume-head" in snapMap[snap2.name].children
+    assert snapMap[snap2.name].removed is True
     check_volume_data(volume, snap2_data)
 
     cleanup_volume(client, volume)
@@ -415,7 +415,7 @@ def test_backup(clients, volume_name):  # NOQA
 
 
 def backup_test(clients, volume_name, size, base_image=""):  # NOQA
-    for host_id, client in clients.iteritems():
+    for host_id, client in iter(clients.items()):
         break
 
     volume = create_and_check_volume(client, volume_name, 2, size, base_image)
@@ -431,19 +431,19 @@ def backup_test(clients, volume_name, size, base_image=""):  # NOQA
         if common.is_backupTarget_s3(backupstore):
             backupsettings = backupstore.split("$")
             setting = client.update(setting, value=backupsettings[0])
-            assert setting["value"] == backupsettings[0]
+            assert setting.value == backupsettings[0]
 
             credential = client.by_id_setting(
                     common.SETTING_BACKUP_TARGET_CREDENTIAL_SECRET)
             credential = client.update(credential, value=backupsettings[1])
-            assert credential["value"] == backupsettings[1]
+            assert credential.value == backupsettings[1]
         else:
             setting = client.update(setting, value=backupstore)
-            assert setting["value"] == backupstore
+            assert setting.value == backupstore
             credential = client.by_id_setting(
                     common.SETTING_BACKUP_TARGET_CREDENTIAL_SECRET)
             credential = client.update(credential, value="")
-            assert credential["value"] == ""
+            assert credential.value == ""
 
         backupstore_test(client, lht_hostId, volume_name, size)
 
@@ -459,7 +459,7 @@ def test_backup_labels(clients, random_labels, volume_name):  # NOQA
 
 
 def backup_labels_test(clients, random_labels, volume_name, size=SIZE, base_image=""):  # NOQA
-    for _, client in clients.iteritems():
+    for _, client in iter(clients.items()):
         break
     host_id = get_self_host_id()
 
@@ -475,57 +475,57 @@ def backup_labels_test(clients, random_labels, volume_name, size=SIZE, base_imag
         if common.is_backupTarget_s3(backupstore):
             backupsettings = backupstore.split("$")
             setting = client.update(setting, value=backupsettings[0])
-            assert setting["value"] == backupsettings[0]
+            assert setting.value == backupsettings[0]
 
             credential = client.by_id_setting(
                 common.SETTING_BACKUP_TARGET_CREDENTIAL_SECRET)
             credential = client.update(credential, value=backupsettings[1])
-            assert credential["value"] == backupsettings[1]
+            assert credential.value == backupsettings[1]
         else:
             setting = client.update(setting, value=backupstore)
-            assert setting["value"] == backupstore
+            assert setting.value == backupstore
             credential = client.by_id_setting(
                 common.SETTING_BACKUP_TARGET_CREDENTIAL_SECRET)
             credential = client.update(credential, value="")
-            assert credential["value"] == ""
+            assert credential.value == ""
 
         bv, b, _, _ = create_backup(client, volume_name, labels=random_labels)
         # If we're running the test with a BaseImage, check that this Label is
         # set properly.
-        backup = bv.backupGet(name=b["name"])
+        backup = bv.backupGet(name=b.name)
         if base_image:
-            assert backup["labels"].get(common.BASE_IMAGE_LABEL) == base_image
+            assert backup.labels.get(common.BASE_IMAGE_LABEL) == base_image
             # One extra Label from the BaseImage being set.
-            assert len(backup["labels"]) == len(random_labels) + 1
+            assert len(backup.labels) == len(random_labels) + 1
         else:
-            assert len(backup["labels"]) == len(random_labels)
+            assert len(backup.labels) == len(random_labels)
 
     cleanup_volume(client, volume)
 
 
 # test normally created volume's "InitialRestorationRequired" field
 def test_restoration_required_field(clients):  # NOQA
-    for host_id, client in clients.iteritems():
+    for host_id, client in iter(clients.items()):
         break
 
     volname = generate_volume_name()
     volume = client.create_volume(name=volname, size=SIZE, numberOfReplicas=3)
     volume = common.wait_for_volume_detached(client, volname)
-    assert volume["initialRestorationRequired"] is False
+    assert volume.initialRestorationRequired is False
 
     volume = volume.attach(hostId=host_id)
     volume = common.wait_for_volume_healthy(client, volname)
-    assert volume["initialRestorationRequired"] is False
+    assert volume.initialRestorationRequired is False
 
     volume = volume.detach()
     volume = common.wait_for_volume_detached(client, volname)
-    assert volume["initialRestorationRequired"] is False
+    assert volume.initialRestorationRequired is False
 
     client.delete(volume)
     volume = wait_for_volume_delete(client, volname)
 
     volumes = client.list_volume()
-    assert len(volumes) == 0
+    assert volumes.__len__() == 0
 
 
 def backupstore_test(client, host_id, volname, size):
@@ -535,15 +535,15 @@ def backupstore_test(client, host_id, volname, size):
     restoreName = generate_volume_name()
     volume = client.create_volume(name=restoreName, size=size,
                                   numberOfReplicas=2,
-                                  fromBackup=b["url"])
+                                  fromBackup=b.url)
 
     volume = common.wait_for_volume_restoration_completed(client, restoreName)
     volume = common.wait_for_volume_detached(client, restoreName)
-    assert volume["name"] == restoreName
-    assert volume["size"] == size
-    assert volume["numberOfReplicas"] == 2
-    assert volume["state"] == "detached"
-    assert volume["initialRestorationRequired"] is False
+    assert volume.name == restoreName
+    assert volume.size == size
+    assert volume.numberOfReplicas == 2
+    assert volume.state == "detached"
+    assert volume.initialRestorationRequired is False
 
     volume = volume.attach(hostId=host_id)
     volume = common.wait_for_volume_healthy(client, restoreName)
@@ -551,11 +551,11 @@ def backupstore_test(client, host_id, volname, size):
     volume = volume.detach()
     volume = common.wait_for_volume_detached(client, restoreName)
 
-    delete_backup(bv, b["name"])
+    delete_backup(bv, b.name)
 
-    volume = wait_for_volume_status(client, volume["name"],
+    volume = wait_for_volume_status(client, volume.name,
                                     "lastBackup", "")
-    assert volume["lastBackupAt"] == ""
+    assert volume.lastBackupAt == ""
 
     client.delete(volume)
 
@@ -564,7 +564,7 @@ def backupstore_test(client, host_id, volname, size):
 
 @pytest.mark.coretest   # NOQA
 def test_restore_inc(clients, core_api, volume_name, pod):  # NOQA
-    for _, client in clients.iteritems():
+    for _, client in iter(clients.items()):
         break
 
     setting = client.by_id_setting(common.SETTING_BACKUP_TARGET)
@@ -574,19 +574,19 @@ def test_restore_inc(clients, core_api, volume_name, pod):  # NOQA
         if common.is_backupTarget_s3(backupstore):
             backupsettings = backupstore.split("$")
             setting = client.update(setting, value=backupsettings[0])
-            assert setting["value"] == backupsettings[0]
+            assert setting.value == backupsettings[0]
 
             credential = client.by_id_setting(
                 common.SETTING_BACKUP_TARGET_CREDENTIAL_SECRET)
             credential = client.update(credential, value=backupsettings[1])
-            assert credential["value"] == backupsettings[1]
+            assert credential.value == backupsettings[1]
         else:
             setting = client.update(setting, value=backupstore)
-            assert setting["value"] == backupstore
+            assert setting.value == backupstore
             credential = client.by_id_setting(
                 common.SETTING_BACKUP_TARGET_CREDENTIAL_SECRET)
             credential = client.update(credential, value="")
-            assert credential["value"] == ""
+            assert credential.value == ""
 
         restore_inc_test(client, core_api, volume_name, pod)
 
@@ -636,39 +636,39 @@ def restore_inc_test(client, core_api, volume_name, pod):  # NOQA
         sb_engine0 = get_volume_engine(sb_volume0)
         sb_engine1 = get_volume_engine(sb_volume1)
         sb_engine2 = get_volume_engine(sb_volume2)
-        if sb_volume0["lastBackup"] != backup0["name"] or \
-                sb_volume1["lastBackup"] != backup0["name"] or \
-                sb_volume2["lastBackup"] != backup0["name"] or \
-                sb_engine0["lastRestoredBackup"] != backup0["name"] or \
-                sb_engine1["lastRestoredBackup"] != backup0["name"] or \
-                sb_engine2["lastRestoredBackup"] != backup0["name"]:
+        if sb_volume0.lastBackup != backup0.name or \
+                sb_volume1.lastBackup != backup0.name or \
+                sb_volume2.lastBackup != backup0.name or \
+                sb_engine0.lastRestoredBackup != backup0.name or \
+                sb_engine1.lastRestoredBackup != backup0.name or \
+                sb_engine2.lastRestoredBackup != backup0.name:
             time.sleep(RETRY_INTERVAL)
         else:
             break
-    assert sb_volume0["standby"] is True
-    assert sb_volume0["lastBackup"] == backup0["name"]
-    assert sb_volume0["frontend"] == ""
-    assert sb_volume0["disableFrontend"] is True
-    assert sb_volume0["initialRestorationRequired"] is False
+    assert sb_volume0.standby is True
+    assert sb_volume0.lastBackup == backup0.name
+    assert sb_volume0.frontend == ""
+    assert sb_volume0.disableFrontend is True
+    assert sb_volume0.initialRestorationRequired is False
     sb_engine0 = get_volume_engine(sb_volume0)
-    assert sb_engine0["lastRestoredBackup"] == backup0["name"]
-    assert sb_engine0["requestedBackupRestore"] == backup0["name"]
-    assert sb_volume1["standby"] is True
-    assert sb_volume1["lastBackup"] == backup0["name"]
-    assert sb_volume1["frontend"] == ""
-    assert sb_volume1["disableFrontend"] is True
-    assert sb_volume1["initialRestorationRequired"] is False
+    assert sb_engine0.lastRestoredBackup == backup0.name
+    assert sb_engine0.requestedBackupRestore == backup0.name
+    assert sb_volume1.standby is True
+    assert sb_volume1.lastBackup == backup0.name
+    assert sb_volume1.frontend == ""
+    assert sb_volume1.disableFrontend is True
+    assert sb_volume1.initialRestorationRequired is False
     sb_engine1 = get_volume_engine(sb_volume1)
-    assert sb_engine1["lastRestoredBackup"] == backup0["name"]
-    assert sb_engine1["requestedBackupRestore"] == backup0["name"]
-    assert sb_volume2["standby"] is True
-    assert sb_volume2["lastBackup"] == backup0["name"]
-    assert sb_volume2["frontend"] == ""
-    assert sb_volume2["disableFrontend"] is True
-    assert sb_volume2["initialRestorationRequired"] is False
+    assert sb_engine1.lastRestoredBackup == backup0.name
+    assert sb_engine1.requestedBackupRestore == backup0.name
+    assert sb_volume2.standby is True
+    assert sb_volume2.lastBackup == backup0.name
+    assert sb_volume2.frontend == ""
+    assert sb_volume2.disableFrontend is True
+    assert sb_volume2.initialRestorationRequired is False
     sb_engine2 = get_volume_engine(sb_volume2)
-    assert sb_engine2["lastRestoredBackup"] == backup0["name"]
-    assert sb_engine2["requestedBackupRestore"] == backup0["name"]
+    assert sb_engine2.lastRestoredBackup == backup0.name
+    assert sb_engine2.requestedBackupRestore == backup0.name
 
     sb0_snaps = sb_volume0.snapshotList()
     assert len(sb0_snaps) == 2
@@ -680,13 +680,13 @@ def restore_inc_test(client, core_api, volume_name, pod):  # NOQA
         sb_volume0.snapshotCreate()
         assert "cannot create snapshot for standby volume" in str(e.value)
     with pytest.raises(Exception) as e:
-        sb_volume0.snapshotRevert(name=sb0_snap["name"])
+        sb_volume0.snapshotRevert(name=sb0_snap.name)
         assert "cannot revert snapshot for standby volume" in str(e.value)
     with pytest.raises(Exception) as e:
-        sb_volume0.snapshotDelete(name=sb0_snap["name"])
+        sb_volume0.snapshotDelete(name=sb0_snap.name)
         assert "cannot delete snapshot for standby volume" in str(e.value)
     with pytest.raises(Exception) as e:
-        sb_volume0.snapshotBackup(name=sb0_snap["name"])
+        sb_volume0.snapshotBackup(name=sb0_snap.name)
         assert "cannot create backup for standby volume" in str(e.value)
     with pytest.raises(Exception) as e:
         sb_volume0.pvCreate(pvName=sb_volume0_name)
@@ -757,19 +757,19 @@ def restore_inc_test(client, core_api, volume_name, pod):  # NOQA
     create_and_wait_pod(core_api, pod)
 
     sb_volume2 = client.by_id_volume(sb_volume2_name)
-    k_status = sb_volume2["kubernetesStatus"]
+    k_status = sb_volume2.kubernetesStatus
     workloads = k_status['workloadsStatus']
     assert k_status['pvName'] == sb_volume2_name
     assert k_status['pvStatus'] == 'Bound'
-    assert len(workloads) == 1
+    assert workloads.__len__() == 1
     for i in range(RETRY_COUNTS):
         if workloads[0]['podStatus'] == 'Running':
             break
         time.sleep(RETRY_INTERVAL)
         sb_volume2 = client.by_id_volume(sb_volume2_name)
-        k_status = sb_volume2["kubernetesStatus"]
+        k_status = sb_volume2.kubernetesStatus
         workloads = k_status['workloadsStatus']
-        assert len(workloads) == 1
+        assert workloads.__len__() == 1
     assert workloads[0]['podName'] == sb_volume2_pod_name
     assert workloads[0]['podStatus'] == 'Running'
     assert not workloads[0]['workloadName']
@@ -792,9 +792,9 @@ def restore_inc_test(client, core_api, volume_name, pod):  # NOQA
     sb_volume1 = common.wait_for_volume_detached(client, sb_volume1_name)
     sb_volume2 = common.wait_for_volume_detached(client, sb_volume2_name)
 
-    bv.backupDelete(name=backup2["name"])
-    bv.backupDelete(name=backup1["name"])
-    bv.backupDelete(name=backup0["name"])
+    bv.backupDelete(name=backup2.name)
+    bv.backupDelete(name=backup1.name)
+    bv.backupDelete(name=backup0.name)
 
     client.delete(std_volume)
     client.delete(sb_volume0)
@@ -807,11 +807,11 @@ def restore_inc_test(client, core_api, volume_name, pod):  # NOQA
     wait_for_volume_delete(client, sb_volume2_name)
 
     volumes = client.list_volume()
-    assert len(volumes) == 0
+    assert volumes.__len__() == 0
 
 
 def test_deleting_backup_volume(clients):  # NOQA
-    for host_id, client in clients.iteritems():
+    for host_id, client in iter(clients.items()):
         break
     lht_hostId = get_self_host_id()
 
@@ -832,7 +832,7 @@ def test_deleting_backup_volume(clients):  # NOQA
 
 @pytest.mark.coretest   # NOQA
 def test_listing_backup_volume(clients, base_image=""):   # NOQA
-    for host_id, client in clients.iteritems():
+    for host_id, client in iter(clients.items()):
         break
     lht_hostId = get_self_host_id()
 
@@ -862,9 +862,9 @@ def test_listing_backup_volume(clients, base_image=""):   # NOQA
             for i in range(RETRY_COMMAND_COUNT):
                 nfs_url = backupstore.strip("nfs://")
                 setting = client.update(setting, value=backupstore)
-                assert setting["value"] == backupstore
+                assert setting.value == backupstore
                 setting = client.by_id_setting(common.SETTING_BACKUP_TARGET)
-                if "nfs" in setting["value"]:
+                if "nfs" in setting.value:
                     updated = True
                     break
             assert updated
@@ -892,14 +892,14 @@ def test_listing_backup_volume(clients, base_image=""):   # NOQA
     for i in range(RETRY_COUNTS):
         bvs = client.list_backupVolume()
         for bv in bvs:
-            if bv["name"] == volume1_name:
+            if bv.name == volume1_name:
                 if "error" in bv.messages:
-                    assert "volume.cfg" in bv.messages["error"].lower()
+                    assert "volume.cfg" in bv.messages.error.lower()
                     found1 = True
-            elif bv["name"] == volume2_name:
+            elif bv.name == volume2_name:
                 assert not bv.messages
                 found2 = True
-            elif bv["name"] == volume3_name:
+            elif bv.name == volume3_name:
                 assert not bv.messages
                 found3 = True
         if found1 & found2 & found3:
@@ -915,40 +915,40 @@ def test_listing_backup_volume(clients, base_image=""):   # NOQA
     found = False
     for i in range(RETRY_COMMAND_COUNT):
         try:
-            bv1, b1 = common.find_backup(client, volume1_name, snap1["name"])
+            bv1, b1 = common.find_backup(client, volume1_name, snap1.name)
             found = True
             break
         except Exception:
             time.sleep(1)
     assert found
-    bv1.backupDelete(name=b1["name"])
+    bv1.backupDelete(name=b1.name)
     for i in range(RETRY_COMMAND_COUNT):
         found = False
         backups1 = bv1.backupList().data
         for b in backups1:
-            if b["snapshotName"] == snap1["name"]:
+            if b.snapshotName == snap1.name:
                 found = True
                 break
     assert not found
 
-    bv2, b2 = common.find_backup(client, volume2_name, snap2["name"])
-    bv2.backupDelete(name=b2["name"])
+    bv2, b2 = common.find_backup(client, volume2_name, snap2.name)
+    bv2.backupDelete(name=b2.name)
     for i in range(RETRY_COMMAND_COUNT):
         found = False
         backups2 = bv2.backupList().data
         for b in backups2:
-            if b["snapshotName"] == snap2["name"]:
+            if b.snapshotName == snap2.name:
                 found = True
                 break
     assert not found
 
-    bv3, b3 = common.find_backup(client, volume3_name, snap3["name"])
-    bv3.backupDelete(name=b3["name"])
+    bv3, b3 = common.find_backup(client, volume3_name, snap3.name)
+    bv3.backupDelete(name=b3.name)
     for i in range(RETRY_COMMAND_COUNT):
         found = False
         backups3 = bv3.backupList().data
         for b in backups3:
-            if b["snapshotName"] == snap3["name"]:
+            if b.snapshotName == snap3.name:
                 found = True
                 break
     assert not found
@@ -969,7 +969,7 @@ def test_listing_backup_volume(clients, base_image=""):   # NOQA
     wait_for_volume_delete(client, volume3_name)
 
     volumes = client.list_volume()
-    assert len(volumes) == 0
+    assert volumes.__len__() == 0
 
 
 @pytest.mark.coretest   # NOQA
@@ -987,7 +987,7 @@ def test_volume_multinode(clients, volume_name):  # NOQA
         volume = common.wait_for_volume_healthy(get_random_client(clients),
                                                 volume_name)
         engine = get_volume_engine(volume)
-        assert engine["hostId"] == host_id
+        assert engine.hostId == host_id
         volume = volume.detach()
         volume = common.wait_for_volume_detached(get_random_client(clients),
                                                  volume_name)
@@ -996,7 +996,7 @@ def test_volume_multinode(clients, volume_name):  # NOQA
     wait_for_volume_delete(get_random_client(clients), volume_name)
 
     volumes = get_random_client(clients).list_volume()
-    assert len(volumes) == 0
+    assert volumes.__len__() == 0
 
 
 @pytest.mark.coretest  # NOQA
@@ -1007,11 +1007,11 @@ def test_volume_scheduling_failure(clients, volume_name):  # NOQA
     '''
     client = get_random_client(clients)
     nodes = client.list_node()
-    assert len(nodes) > 0
+    assert nodes.__len__() > 0
 
     for node in nodes:
         node = client.update(node, allowScheduling=False)
-        node = common.wait_for_node_update(client, node["id"],
+        node = common.wait_for_node_update(client, node.id,
                                            "allowScheduling", False)
 
     volume = client.create_volume(name=volume_name, size=SIZE,
@@ -1028,7 +1028,7 @@ def test_volume_scheduling_failure(clients, volume_name):  # NOQA
 
     for node in nodes:
         node = client.update(node, allowScheduling=True)
-        node = common.wait_for_node_update(client, node["id"],
+        node = common.wait_for_node_update(client, node.id,
                                            "allowScheduling", True)
 
     volume = common.wait_for_volume_condition_scheduled(client, volume_name,
@@ -1052,12 +1052,12 @@ def test_volume_scheduling_failure(clients, volume_name):  # NOQA
 def test_setting_default_replica_count(clients, volume_name):  # NOQA
     client = get_random_client(clients)
     setting = client.by_id_setting(common.SETTING_DEFAULT_REPLICA_COUNT)
-    old_value = setting["value"]
+    old_value = setting.value
     setting = client.update(setting, value="5")
 
     volume = client.create_volume(name=volume_name, size=SIZE)
     volume = common.wait_for_volume_detached(client, volume_name)
-    assert len(volume["replicas"]) == int(setting.value)
+    assert len(volume.replicas) == int(setting.value)
 
     client.delete(volume)
     wait_for_volume_delete(client, volume_name)
@@ -1067,7 +1067,7 @@ def test_setting_default_replica_count(clients, volume_name):  # NOQA
 
 @pytest.mark.coretest   # NOQA
 def test_volume_update_replica_count(clients, volume_name):  # NOQA
-    for host_id, client in clients.iteritems():
+    for host_id, client in iter(clients.items()):
         break
 
     replica_count = 3
@@ -1080,22 +1080,22 @@ def test_volume_update_replica_count(clients, volume_name):  # NOQA
     volume = volume.updateReplicaCount(replicaCount=replica_count)
     volume = common.wait_for_volume_degraded(client, volume_name)
     volume = common.wait_for_volume_healthy(client, volume_name)
-    assert len(volume["replicas"]) == replica_count
+    assert len(volume.replicas) == replica_count
 
     old_replica_count = replica_count
     replica_count = 2
     volume = volume.updateReplicaCount(replicaCount=replica_count)
     volume = common.wait_for_volume_healthy(client, volume_name)
-    assert len(volume["replicas"]) == old_replica_count
+    assert len(volume.replicas) == old_replica_count
 
-    volume.replicaRemove(name=volume["replicas"][0]["name"])
-    volume.replicaRemove(name=volume["replicas"][1]["name"])
-    volume.replicaRemove(name=volume["replicas"][2]["name"])
+    volume.replicaRemove(name=volume.replicas[0].name)
+    volume.replicaRemove(name=volume.replicas[1].name)
+    volume.replicaRemove(name=volume.replicas[2].name)
 
     volume = common.wait_for_volume_replica_count(client,
                                                   volume_name, replica_count)
     volume = common.wait_for_volume_healthy(client, volume_name)
-    assert len(volume["replicas"]) == replica_count
+    assert len(volume.replicas) == replica_count
 
     client.delete(volume)
     wait_for_volume_delete(client, volume_name)
@@ -1103,7 +1103,7 @@ def test_volume_update_replica_count(clients, volume_name):  # NOQA
 
 @pytest.mark.coretest   # NOQA
 def test_attach_without_frontend(clients, volume_name):  # NOQA
-    for host_id, client in clients.iteritems():
+    for host_id, client in iter(clients.items()):
         break
 
     volume = create_and_check_volume(client, volume_name)
@@ -1113,8 +1113,8 @@ def test_attach_without_frontend(clients, volume_name):  # NOQA
     common.wait_for_volume_healthy(client, volume_name)
 
     volume = client.by_id_volume(volume_name)
-    assert volume["disableFrontend"] is False
-    assert volume["frontend"] == "blockdev"
+    assert volume.disableFrontend is False
+    assert volume.frontend == "blockdev"
 
     snap1_data = write_volume_random_data(volume)
     snap1 = create_snapshot(client, volume_name)
@@ -1130,11 +1130,11 @@ def test_attach_without_frontend(clients, volume_name):  # NOQA
 
     volume = client.by_id_volume(volume_name)
     engine = get_volume_engine(volume)
-    assert volume["disableFrontend"] is True
-    assert volume["frontend"] == "blockdev"
-    assert engine["endpoint"] == ""
+    assert volume.disableFrontend is True
+    assert volume.frontend == "blockdev"
+    assert engine.endpoint == ""
 
-    volume.snapshotRevert(name=snap1["name"])
+    volume.snapshotRevert(name=snap1.name)
 
     volume.detach()
     volume = common.wait_for_volume_detached(client, volume_name)
@@ -1143,8 +1143,8 @@ def test_attach_without_frontend(clients, volume_name):  # NOQA
     common.wait_for_volume_healthy(client, volume_name)
 
     volume = client.by_id_volume(volume_name)
-    assert volume["disableFrontend"] is False
-    assert volume["frontend"] == "blockdev"
+    assert volume.disableFrontend is False
+    assert volume.frontend == "blockdev"
 
     check_volume_data(volume, snap1_data)
 
@@ -1156,7 +1156,7 @@ def test_attach_without_frontend(clients, volume_name):  # NOQA
 def test_storage_class_from_backup(volume_name, pvc_name, storage_class, clients, core_api, pod_make): # NOQA
     VOLUME_SIZE = str(DEFAULT_VOLUME_SIZE * Gi)
 
-    for _, client in clients.iteritems():
+    for _, client in iter(clients.items()):
         break
 
     set_random_backupstore(client)

@@ -1175,10 +1175,10 @@ def wait_for_volume_status(client, name, key, value):
     wait_for_volume_creation(client, name)
     for i in range(RETRY_COUNTS):
         volume = client.by_id_volume(name)
-        if volume.key == value:
+        if getattr(volume, key) == value:
             break
         time.sleep(RETRY_INTERVAL)
-    assert volume.key == value
+    assert getattr(volume, key) == value
     return volume
 
 
@@ -1447,7 +1447,7 @@ def write_volume_random_data(volume, position={}):
 
 def check_device_data(dev, data, check_checksum=True):
     r_data = dev_read(dev, data['pos'], data['len'])
-    assert r_data == data['content']
+    assert r_data == bytes(data['content'], encoding='utf8')
     if check_checksum:
         r_checksum = get_device_checksum(dev)
         assert r_checksum == data['checksum']
@@ -1512,6 +1512,7 @@ def volume_write(v, start, data):
 
 
 def dev_write(dev, start, data):
+    data = bytes(data, encoding='utf-8')
     w_length = 0
     fdev = open(dev, 'rb+')
     if fdev is not None:
@@ -1636,7 +1637,7 @@ def generate_random_pos(size, used={}):
         if not collided:
             break
     assert not collided
-    used.pos = pos + size
+    used["pos"] = pos + size
     return pos
 
 
