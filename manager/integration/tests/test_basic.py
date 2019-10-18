@@ -78,17 +78,17 @@ def test_settings(clients):  # NOQA
 
     settingMap = {}
     for setting in settings:
-        settingMap[setting["name"]] = setting
+        settingMap[setting.name] = setting
 
     for name in setting_names:
         assert settingMap[name] is not None
-        assert settingMap[name]["definition"]["description"] is not None
+        assert settingMap[name].definition.description is not None
 
     for name in setting_names:
         setting = client.by_id_setting(name)
-        assert settingMap[name]["value"] == setting["value"]
+        assert settingMap[name].value == setting.value
 
-        old_value = setting["value"]
+        old_value = setting.value
 
         if name == common.SETTING_STORAGE_OVER_PROVISIONING_PERCENTAGE:
             with pytest.raises(Exception) as e:
@@ -100,9 +100,9 @@ def test_settings(clients):  # NOQA
             assert "with invalid "+name in \
                    str(e.value)
             setting = client.update(setting, value="200")
-            assert setting["value"] == "200"
+            assert setting.value == "200"
             setting = client.by_id_setting(name)
-            assert setting["value"] == "200"
+            assert setting.value == "200"
         elif name == common.SETTING_STORAGE_MINIMAL_AVAILABLE_PERCENTAGE:
             with pytest.raises(Exception) as e:
                 client.update(setting, value="300")
@@ -117,23 +117,23 @@ def test_settings(clients):  # NOQA
             assert "with invalid "+name in \
                    str(e.value)
             setting = client.update(setting, value="30")
-            assert setting["value"] == "30"
+            assert setting.value == "30"
             setting = client.by_id_setting(name)
-            assert setting["value"] == "30"
+            assert setting.value == "30"
         elif name == common.SETTING_BACKUP_TARGET:
             with pytest.raises(Exception) as e:
                 client.update(setting, value="testvalue$test")
             assert "with invalid "+name in \
                    str(e.value)
             setting = client.update(setting, value="nfs://test")
-            assert setting["value"] == "nfs://test"
+            assert setting.value == "nfs://test"
             setting = client.by_id_setting(name)
-            assert setting["value"] == "nfs://test"
+            assert setting.value == "nfs://test"
         elif name == common.SETTING_BACKUP_TARGET_CREDENTIAL_SECRET:
             setting = client.update(setting, value="testvalue")
-            assert setting["value"] == "testvalue"
+            assert setting.value == "testvalue"
             setting = client.by_id_setting(name)
-            assert setting["value"] == "testvalue"
+            assert setting.value == "testvalue"
         elif name == common.SETTING_DEFAULT_REPLICA_COUNT:
             with pytest.raises(Exception) as e:
                 client.update(setting, value="-1")
@@ -148,12 +148,12 @@ def test_settings(clients):  # NOQA
             assert "with invalid "+name in \
                    str(e.value)
             setting = client.update(setting, value="2")
-            assert setting["value"] == "2"
+            assert setting.value == "2"
             setting = client.by_id_setting(name)
-            assert setting["value"] == "2"
+            assert setting.value == "2"
 
         setting = client.update(setting, value=old_value)
-        assert setting["value"] == old_value
+        assert setting.value == old_value
 
 
 def volume_rw_test(dev):
