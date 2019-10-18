@@ -1593,11 +1593,11 @@ def get_process_info(p_path):
     with open(p_path) as file:
         for line in file.readlines():
             if 'Name:\t' == line[0:len('Name:\t')]:
-                info.Name = line[len("Name:"):].strip()
+                info["Name"] = line[len("Name:"):].strip()
             if 'Pid:\t' == line[0:len('Pid:\t')]:
-                info.Pid = line[len("Pid:"):].strip()
+                info["Pid"] = line[len("Pid:"):].strip()
             if 'PPid:\t' == line[0:len('PPid:\t')]:
-                info.PPid = line[len("PPid:"):].strip()
+                info["PPid"] = line[len("PPid:"):].strip()
     if "Name" not in info or "Pid" not in info or "PPid" not in info:
         return
     return info
@@ -1610,11 +1610,11 @@ def find_self():
 def find_ancestor_process_by_name(ancestor_name):
     p = find_self()
     while True:
-        if not p or p.Pid == "1":
+        if not p or p["Pid"] == "1":
             break
-        if p.Name == ancestor_name:
-            return p.Pid
-        p = get_process_info("/host/proc/{}/status".format(p.PPid))
+        if p["Name"] == ancestor_name:
+            return p["Pid"]
+        p = get_process_info("/host/proc/{}/status".format(p["PPid"]))
     return
 
 

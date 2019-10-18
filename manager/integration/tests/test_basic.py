@@ -253,7 +253,7 @@ def volume_iscsi_basic_test(clients, volume_name, base_image=""):  # NOQA
     volume.attach(hostId=host_id)
     volume = common.wait_for_volume_healthy(client, volume_name)
 
-    volumes = client.list_volume()
+    volumes = client.list_volume().data
     assert volumes.__len__() == 1
     assert volumes[0].name == volume.name
     assert volumes[0].size == volume.size
