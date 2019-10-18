@@ -611,13 +611,13 @@ def restore_inc_test(client, core_api, volume_name, pod):  # NOQA
     sb_volume1_name = "sb-1-" + volume_name
     sb_volume2_name = "sb-2-" + volume_name
     client.create_volume(name=sb_volume0_name, size=SIZE,
-                         numberOfReplicas=2, fromBackup=backup0['url'],
+                         numberOfReplicas=2, fromBackup=backup0.url,
                          frontend="", standby=True)
     client.create_volume(name=sb_volume1_name, size=SIZE,
-                         numberOfReplicas=2, fromBackup=backup0['url'],
+                         numberOfReplicas=2, fromBackup=backup0.url,
                          frontend="", standby=True)
     client.create_volume(name=sb_volume2_name, size=SIZE,
-                         numberOfReplicas=2, fromBackup=backup0['url'],
+                         numberOfReplicas=2, fromBackup=backup0.url,
                          frontend="", standby=True)
     common.wait_for_volume_restoration_completed(client, sb_volume0_name)
     common.wait_for_volume_restoration_completed(client, sb_volume1_name)
@@ -672,9 +672,9 @@ def restore_inc_test(client, core_api, volume_name, pod):  # NOQA
     assert sb_engine2.requestedBackupRestore == backup0.name
 
     sb0_snaps = sb_volume0.snapshotList()
-    assert len(sb0_snaps) == 2
+    assert sb0_snaps.__len__() == 2
     for s in sb0_snaps:
-        if s['name'] != "volume-head":
+        if s.name != "volume-head":
             sb0_snap = s
     assert sb0_snaps
     with pytest.raises(Exception) as e:
@@ -716,7 +716,7 @@ def restore_inc_test(client, core_api, volume_name, pod):  # NOQA
         {'len': 2 * 1024, 'pos': 0, 'content': zero_string * 2 * 1024})
     # use this api to update field `last backup`
     client.list_backupVolume()
-    check_volume_last_backup(client, sb_volume1_name, backup1['name'])
+    check_volume_last_backup(client, sb_volume1_name, backup1.name)
     activate_standby_volume(client, sb_volume1_name)
     sb_volume1 = client.by_id_volume(sb_volume1_name)
     sb_volume1.attach(hostId=lht_host_id)
@@ -733,7 +733,7 @@ def restore_inc_test(client, core_api, volume_name, pod):  # NOQA
     data2['content'] = common.generate_random_data(data2['len'])
     _, backup2, _, data2 = create_backup(client, volume_name, data2)
     client.list_backupVolume()
-    check_volume_last_backup(client, sb_volume2_name, backup2['name'])
+    check_volume_last_backup(client, sb_volume2_name, backup2.name)
     activate_standby_volume(client, sb_volume2_name)
     sb_volume2 = client.by_id_volume(sb_volume2_name)
     sb_volume2.attach(hostId=lht_host_id)
@@ -759,26 +759,26 @@ def restore_inc_test(client, core_api, volume_name, pod):  # NOQA
 
     sb_volume2 = client.by_id_volume(sb_volume2_name)
     k_status = sb_volume2.kubernetesStatus
-    workloads = k_status['workloadsStatus']
-    assert k_status['pvName'] == sb_volume2_name
-    assert k_status['pvStatus'] == 'Bound'
+    workloads = k_status.workloadsStatus
+    assert k_status.pvName == sb_volume2_name
+    assert k_status.pvStatus == 'Bound'
     assert workloads.__len__() == 1
     for i in range(RETRY_COUNTS):
-        if workloads[0]['podStatus'] == 'Running':
+        if workloads[0].podStatus == 'Running':
             break
         time.sleep(RETRY_INTERVAL)
         sb_volume2 = client.by_id_volume(sb_volume2_name)
         k_status = sb_volume2.kubernetesStatus
-        workloads = k_status['workloadsStatus']
+        workloads = k_status.workloadsStatus
         assert workloads.__len__() == 1
-    assert workloads[0]['podName'] == sb_volume2_pod_name
-    assert workloads[0]['podStatus'] == 'Running'
-    assert not workloads[0]['workloadName']
-    assert not workloads[0]['workloadType']
-    assert k_status['namespace'] == 'default'
-    assert k_status['pvcName'] == sb_volume2_name
-    assert not k_status['lastPVCRefAt']
-    assert not k_status['lastPodRefAt']
+    assert workloads[0].podName == sb_volume2_pod_name
+    assert workloads[0].podStatus == 'Running'
+    assert not workloads[0].workloadName
+    assert not workloads[0].workloadType
+    assert k_status.namespace == 'default'
+    assert k_status.pvcName == sb_volume2_name
+    assert not k_status.lastPVCRefAt
+    assert not k_status.lastPodRefAt
 
     delete_and_wait_pod(core_api, sb_volume2_pod_name)
     delete_and_wait_pvc(core_api, sb_volume2_name)

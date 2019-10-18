@@ -2331,11 +2331,11 @@ def wait_volume_kubernetes_status(client, volume_name, expect_ks):
         ks = volume.kubernetesStatus
         for k, v in expect_ks.items():
             if k in ('lastPVCRefAt', 'lastPodRefAt'):
-                if (v != '' and ks.k == '') or (v == '' and ks.k != ''):
+                if (v != '' and getattr(ks, k) == '') or (v == '' and getattr(ks, k) != ''):
                     expected = False
                     break
             else:
-                if ks.k != v:
+                if getattr(ks, k) != v:
                     expected = False
                     break
         if expected:
@@ -2359,7 +2359,7 @@ def create_pv_for_volume(client, core_api, volume, pv_name):
         'lastPVCRefAt': '',
         'lastPodRefAt': '',
     }
-    wait_volume_kubernetes_status(client, volume['name'], ks)
+    wait_volume_kubernetes_status(client, volume.name, ks)
 
 
 def create_pvc_for_volume(client, core_api, volume, pvc_name):
@@ -2375,17 +2375,17 @@ def create_pvc_for_volume(client, core_api, volume, pvc_name):
         'namespace': 'default',
         'lastPVCRefAt': '',
     }
-    wait_volume_kubernetes_status(client, volume['name'], ks)
+    wait_volume_kubernetes_status(client, volume.name, ks)
 
 
 def activate_standby_volume(client, volume_name, frontend="blockdev"):
     volume = client.by_id_volume(volume_name)
-    assert volume['standby'] is True
+    assert volume.standby is True
     for i in range(RETRY_COUNTS):
         volume = client.by_id_volume(volume_name)
         engines = volume.controllers
         if engines.__len__() != 1 or \
-                engines[0].lastRestoredBackup != volume['lastBackup']:
+                engines[0].lastRestoredBackup != volume.lastBackup:
             time.sleep(RETRY_INTERVAL)
             continue
         try:
@@ -2396,8 +2396,8 @@ def activate_standby_volume(client, volume_name, frontend="blockdev"):
                    in str(e.error.message)
             time.sleep(RETRY_INTERVAL)
     volume = client.by_id_volume(volume_name)
-    assert volume['standby'] is False
-    assert volume['frontend'] == "blockdev"
+    assert volume.standby is False
+    assert volume.frontend == "blockdev"
 
     wait_for_volume_detached(client, volume_name)
 
@@ -2410,11 +2410,11 @@ def activate_standby_volume(client, volume_name, frontend="blockdev"):
 def check_volume_last_backup(client, volume_name, last_backup):
     for i in range(RETRY_COUNTS):
         volume = client.by_id_volume(volume_name)
-        if volume['lastBackup'] == last_backup:
+        if volume.lastBackup == last_backup:
             break
         time.sleep(RETRY_INTERVAL)
     volume = client.by_id_volume(volume_name)
-    assert volume['lastBackup'] == last_backup
+    assert volume.lastBackup == last_backup
 
 
 def set_random_backupstore(client):
