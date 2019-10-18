@@ -1247,7 +1247,7 @@ def wait_for_snapshot_purge(client, volume_name, *snaps):
             replica = status.replica
             last = last_purge_progress.get(status.replica)
             assert last is None or last <= status.progress
-            last_purge_progress.replica = progress
+            last_purge_progress["replica"] = progress
 
             if status.state == "complete":
                 assert progress == 100
@@ -2553,14 +2553,14 @@ def create_snapshot(longhorn_api_client, volume_name):
     volume = longhorn_api_client.by_id_volume(volume_name)
     snapshots = volume.snapshotList(volume=volume_name)
     snap = volume.snapshotCreate()
-    snap_name = snap['name']
+    snap_name = snap.name
 
     snapshot_created = False
     for i in range(RETRY_COUNTS):
         snapshots = volume.snapshotList(volume=volume_name)
 
         for vs in snapshots.data:
-            if vs['name'] == snap_name:
+            if vs.name == snap_name:
                 snapshot_created = True
                 break
         if snapshot_created is True:

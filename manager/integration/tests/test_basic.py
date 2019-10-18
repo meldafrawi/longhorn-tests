@@ -329,17 +329,18 @@ def snapshot_test(clients, volume_name, base_image):  # NOQA
     assert snapMap[snap2.name].removed is False
     assert snapMap[snap3.name].name == snap3.name
     assert snapMap[snap3.name].parent == snap2.name
-    assert len(snapMap[snap3.name].children) == 1
-    assert "volume-head" in snapMap[snap3.name].children
+    assert snapMap[snap3.name].children.__len__() == 1
+    #assert "volume-head" in snapMap[snap3.name].children
+    assert "volume-head" in snapMap[snap3.name].children.keys()
     assert snapMap[snap3.name].removed is True
 
     snap = volume.snapshotGet(name=snap3.name)
     assert snap.name == snap3.name
     assert snap.parent == snap3.parent
-    assert len(snap3.children) == 1
-    assert len(snap.children) == 1
-    assert "volume-head" in snap3.children
-    assert "volume-head" in snap.children
+    assert snap3.children.__len__() == 1
+    assert snap.children.__len__() == 1
+    assert "volume-head" in snap3.children.keys()
+    assert "volume-head" in snap.children.keys()
     assert snap.removed is True
 
     volume.detach()
@@ -377,12 +378,12 @@ def snapshot_test(clients, volume_name, base_image):  # NOQA
     assert snapMap[snap1.name].removed is False
     assert snapMap[snap2.name].name == snap2.name
     assert snapMap[snap2.name].parent == snap1.name
-    assert "volume-head" in snapMap[snap2.name].children
-    assert snap3.name in snapMap[snap2.name].children
+    assert "volume-head" in snapMap[snap2.name].children.keys()
+    assert snap3.name in snapMap[snap2.name].children.keys()
     assert snapMap[snap2.name].removed is False
     assert snapMap[snap3.name].name == snap3.name
     assert snapMap[snap3.name].parent == snap2.name
-    assert len(snapMap[snap3.name].children) == 0
+    assert snapMap[snap3.name].children.__len__() == 0
     assert snapMap[snap3.name].removed is True
 
     volume.snapshotDelete(name=snap1.name)
@@ -402,7 +403,7 @@ def snapshot_test(clients, volume_name, base_image):  # NOQA
     # it's the parent of volume-head, so it cannot be purged at this time
     assert snapMap[snap2.name].name == snap2.name
     assert snapMap[snap2.name].parent == ""
-    assert "volume-head" in snapMap[snap2.name].children
+    assert "volume-head" in snapMap[snap2.name].children.keys()
     assert snapMap[snap2.name].removed is True
     check_volume_data(volume, snap2_data)
 
@@ -496,9 +497,9 @@ def backup_labels_test(clients, random_labels, volume_name, size=SIZE, base_imag
         if base_image:
             assert backup.labels.get(common.BASE_IMAGE_LABEL) == base_image
             # One extra Label from the BaseImage being set.
-            assert len(backup.labels) == len(random_labels) + 1
+            assert backup.labels.__len__() == len(random_labels) + 1
         else:
-            assert len(backup.labels) == len(random_labels)
+            assert backup.labels.__len__() == len(random_labels)
 
     cleanup_volume(client, volume)
 
@@ -1057,7 +1058,7 @@ def test_setting_default_replica_count(clients, volume_name):  # NOQA
 
     volume = client.create_volume(name=volume_name, size=SIZE)
     volume = common.wait_for_volume_detached(client, volume_name)
-    assert len(volume.replicas) == int(setting.value)
+    assert volume.replicas.__len__() == int(setting.value)
 
     client.delete(volume)
     wait_for_volume_delete(client, volume_name)
@@ -1080,13 +1081,13 @@ def test_volume_update_replica_count(clients, volume_name):  # NOQA
     volume = volume.updateReplicaCount(replicaCount=replica_count)
     volume = common.wait_for_volume_degraded(client, volume_name)
     volume = common.wait_for_volume_healthy(client, volume_name)
-    assert len(volume.replicas) == replica_count
+    assert volume.replicas.__len__() == replica_count
 
     old_replica_count = replica_count
     replica_count = 2
     volume = volume.updateReplicaCount(replicaCount=replica_count)
     volume = common.wait_for_volume_healthy(client, volume_name)
-    assert len(volume.replicas) == old_replica_count
+    assert volume.replicas.__len__() == old_replica_count
 
     volume.replicaRemove(name=volume.replicas[0].name)
     volume.replicaRemove(name=volume.replicas[1].name)
@@ -1095,7 +1096,7 @@ def test_volume_update_replica_count(clients, volume_name):  # NOQA
     volume = common.wait_for_volume_replica_count(client,
                                                   volume_name, replica_count)
     volume = common.wait_for_volume_healthy(client, volume_name)
-    assert len(volume.replicas) == replica_count
+    assert volume.replicas.__len__() == replica_count
 
     client.delete(volume)
     wait_for_volume_delete(client, volume_name)
