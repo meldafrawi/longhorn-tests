@@ -929,7 +929,7 @@ def random_labels():
                                                string.digits)
                                  for _ in range(6))
         if not labels.get(key):
-            labels.key = generate_random_data(VOLUME_RWTEST_SIZE)
+            labels["key"] = generate_random_data(VOLUME_RWTEST_SIZE)
             i += 1
     return labels
 
