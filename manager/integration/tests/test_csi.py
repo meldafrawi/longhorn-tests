@@ -86,14 +86,14 @@ def csi_mount_test(client, core_api, csi_pv, pvc, pod_make,  # NOQA
     create_and_wait_csi_pod('csi-mount-test', client, core_api, csi_pv, pvc,
                             pod_make, base_image, "")
 
-    volumes = client.list_volume()
-    assert len(volumes) == 1
-    assert volumes[0]["name"] == csi_pv['metadata']['name']
-    assert volumes[0]["size"] == str(volume_size)
-    assert volumes[0]["numberOfReplicas"] == \
+    volumes = client.list_volume().data
+    assert volumes.__len__() == 1
+    assert volumes[0].name == csi_pv['metadata']['name']
+    assert volumes[0].size == str(volume_size)
+    assert volumes[0].numberOfReplicas == \
         int(csi_pv['spec']['csi']['volumeAttributes']["numberOfReplicas"])
-    assert volumes[0]["state"] == "attached"
-    assert volumes[0]["baseImage"] == base_image
+    assert volumes[0].state == "attached"
+    assert volumes[0].baseImage == base_image
 
 
 @pytest.mark.csi  # NOQA
