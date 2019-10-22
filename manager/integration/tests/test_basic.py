@@ -1186,13 +1186,13 @@ def test_storage_class_from_backup(volume_name, pvc_name, storage_class, clients
     volume_id = client.by_id_volume(volume_name)
     snapshot = volume_id.snapshotCreate()
 
-    volume_id.snapshotBackup(name=snapshot['name'])
+    volume_id.snapshotBackup(name=snapshot.name)
 
-    bv, b = find_backup(client, volume_name, snapshot['name'])
+    bv, b = find_backup(client, volume_name, snapshot.name)
 
-    wait_for_backup_completion(client, volume_name, snapshot['name'])
+    wait_for_backup_completion(client, volume_name, snapshot.name)
 
-    backup_url = b['url']
+    backup_url = b.url
 
     storage_class['metadata']['name'] = "longhorn-from-backup"
     storage_class['parameters']['fromBackup'] = backup_url
@@ -1220,7 +1220,7 @@ def test_storage_class_from_backup(volume_name, pvc_name, storage_class, clients
         }
     }
 
-    volume_count = len(client.list_volume())
+    volume_count = client.list_volume().__len__()
 
     core_api.create_namespaced_persistent_volume_claim(
         'default',
@@ -1230,7 +1230,7 @@ def test_storage_class_from_backup(volume_name, pvc_name, storage_class, clients
     backup_volume_created = False
 
     for i in range(RETRY_COUNTS):
-        if len(client.list_volume()) == volume_count + 1:
+        if client.list_volume().__len__() == volume_count + 1:
             backup_volume_created = True
             break
         time.sleep(RETRY_INTERVAL)
