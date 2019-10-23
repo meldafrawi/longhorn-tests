@@ -1691,15 +1691,16 @@ def wait_for_volume_condition_scheduled(client, name, key, value):
     for i in range(RETRY_COUNTS):
         volume = client.by_id_volume(name)
         conditions = volume.conditions
+        #breakpoint()
         if conditions is not None and \
                 conditions != {} and \
-                conditions[VOLUME_CONDITION_SCHEDULED] and \
-                conditions[VOLUME_CONDITION_SCHEDULED].key and \
-                conditions[VOLUME_CONDITION_SCHEDULED].key == value:
+                conditions.get(VOLUME_CONDITION_SCHEDULED) and \
+                conditions.get(VOLUME_CONDITION_SCHEDULED).get(key) and \
+                conditions.get(VOLUME_CONDITION_SCHEDULED).get(key) == value:
             break
         time.sleep(RETRY_INTERVAL)
     conditions = volume.conditions
-    assert conditions[VOLUME_CONDITION_SCHEDULED].key == value
+    assert conditions.get(VOLUME_CONDITION_SCHEDULED).get(key) == value
     return volume
 
 
@@ -1710,9 +1711,9 @@ def get_host_disk_size(disk):
            disk]
     output = subprocess.check_output(cmd)
     disk_info = json.loads(output)
-    block_size = disk_info.blockSize
-    free_blk = disk_info.freeBlock
-    total_blk = disk_info.totalBlock
+    block_size = disk_info["blockSize"]
+    free_blk = disk_info["freeBlock"]
+    total_blk = disk_info["totalBlock"]
     free = (free_blk * block_size)
     total = (total_blk * block_size)
     return free, total
@@ -1722,8 +1723,8 @@ def wait_for_disk_status(client, name, fsid, key, value):
     for i in range(RETRY_COUNTS):
         node = client.by_id_node(name)
         disks = node.disks
-        disk = getattr(disks, fsid)
-        if getattr(disk, key).__str__() == str(value):
+        disk = disks.get(fsid)
+        if disk.get(key).__str__() == str(value):
             break
         time.sleep(RETRY_INTERVAL)
     return node
@@ -1733,12 +1734,12 @@ def wait_for_disk_conditions(client, name, fsid, key, value):
     for i in range(RETRY_COUNTS):
         node = client.by_id_node(name)
         disks = node.disks
-        disk = disks.fsid
+        disk = disks.get(fsid)
         conditions = disk.conditions
-        if conditions.key.status == value:
+        if conditions.get(key).get("status") == value:
             break
         time.sleep(RETRY_INTERVAL)
-    assert conditions.key.status == value
+    assert conditions.get(key).get("status") == value
     return node
 
 
