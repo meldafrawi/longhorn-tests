@@ -1477,7 +1477,18 @@ def wait_for_replica_failed(client, volname, replica_name):
 
 @pytest.fixture
 def volume_name(request):
-    return generate_volume_name()
+    volume_name = generate_volume_name()
+
+    def finalizer():
+        try:
+            client = get_longhorn_api_client()
+            delete_and_wait_longhorn(client, volume_name)
+        except ApiException as e:
+            assert e.status == 404
+
+    request.addfinalizer(finalizer)
+
+    return volume_name
 
 
 @pytest.fixture
