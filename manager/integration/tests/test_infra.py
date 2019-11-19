@@ -115,36 +115,40 @@ def wait_for_node_down_longhorn(node_name, longhorn_api_client):
     return longhorn_node_down
 
 
-@pytest.yield_fixture
-def reset_cluster_ready_status():
-    yield
-    node_worker_label = 'node-role.kubernetes.io/worker'
+@pytest.fixture
+def reset_cluster_ready_status(request):
+    def finalizer():
+        node_worker_label = 'node-role.kubernetes.io/worker'
 
-    k8s_api_client = get_core_api_client()
-    longhorn_api_client = get_longhorn_api_client()
-    cloudprovider = detect_cloudprovider()
+        k8s_api_client = get_core_api_client()
+        longhorn_api_client = get_longhorn_api_client()
+        cloudprovider = detect_cloudprovider()
 
-    for node_item in k8s_api_client.list_node().items:
-        if node_worker_label in node_item.metadata.labels and \
-                node_item.metadata.labels[node_worker_label] == 'true':
-            node_name = node_item.metadata.name
+        for node_item in k8s_api_client.list_node().items:
+            if node_worker_label in node_item.metadata.labels and \
+                    node_item.metadata.labels[node_worker_label] == 'true':
+                node_name = node_item.metadata.name
 
-            if is_node_ready_k8s(node_name, k8s_api_client) is False:
-                node = cloudprovider.node_id(node_name)
+                if is_node_ready_k8s(node_name, k8s_api_client) is False:
+                    node = cloudprovider.node_id(node_name)
 
-                cloudprovider.node_start(node)
+                    cloudprovider.node_start(node)
 
-                node_up_k8s = wait_for_node_up_k8s(node_name, k8s_api_client)
+                    node_up_k8s = wait_for_node_up_k8s(node_name,
+                                                       k8s_api_client)
 
-                assert node_up_k8s
+                    assert node_up_k8s
 
-            else:
-                continue
+                else:
+                    continue
 
-            node_up_longhorn = wait_for_node_up_longhorn(node_name,
-                                                         longhorn_api_client)
+                node_up_longhorn =\
+                    wait_for_node_up_longhorn(node_name,
+                                              longhorn_api_client)
 
-            assert node_up_longhorn
+                assert node_up_longhorn
+
+    request.addfinalizer(finalizer)
 
 
 @pytest.mark.infra
@@ -187,7 +191,6 @@ def test_offline_node(reset_cluster_ready_status):
 
 @pytest.mark.infra
 def test_offline_node_with_attached_volume(client, reset_cluster_ready_status, core_api, volume_name, make_deployment_with_pvc): # NOQA
-
     toleration_seconds = 20
 
     apps_api = get_apps_api_client()
