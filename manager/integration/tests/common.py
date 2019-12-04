@@ -2516,7 +2516,7 @@ def wait_for_engine_image_deletion(client, core_api, engine_image_name):
 
         ei_list = client.list_engine_image().data
         for ei in ei_list:
-            if ei['name'] == engine_image_name:
+            if ei.name == engine_image_name:
                 deleted = False
                 break
         if not deleted:
@@ -2540,7 +2540,7 @@ def wait_for_engine_image_deletion(client, core_api, engine_image_name):
 
         im_list = client.list_instance_manager().data
         for im in im_list:
-            if im['engineImage'] == engine_image_name:
+            if im.engineImage == engine_image_name:
                 deleted = False
                 break
         if not deleted:
