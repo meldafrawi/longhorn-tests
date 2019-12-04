@@ -518,14 +518,14 @@ def check_volume_replicas(volume, spec, tag_mapping):
     # Make sure that all the Tags the Volume requested were fulfilled.
     for replica in volume.replicas:
         found_hosts[replica.hostId] = {}
-        assert not len(set(spec.disk) -
-                       set(tag_mapping[replica.hostId].disk))
-        assert not len(set(spec.node) -
-                       set(tag_mapping[replica.hostId].node))
+        assert not len(set(spec["disk"]) -
+                       set(tag_mapping[replica.hostId]["disk"]))
+        assert not len(set(spec["node"]) -
+                       set(tag_mapping[replica.hostId]["node"]))
 
     # The Volume should have replicas on as many nodes as matched
     # the requirements (specified by "expected" in the spec variable).
-    assert len(found_hosts) == spec.expected
+    assert len(found_hosts) == spec["expected"]
 
 
 # Default argument is mutable on this function, but it's fine since we're only
@@ -896,13 +896,13 @@ def node_default_tags():
         assert node.disks.__len__() == 1
 
         update_disks = get_update_disks(node.disks)
-        update_disks[0].tags = tags.disk
+        update_disks[0].tags = tags["disk"]
         new_node = node.diskUpdate(disks=update_disks)
         disks = get_update_disks(new_node.disks)
-        assert disks[0].tags == tags.disk
+        assert disks[0].tags == tags["disk"]
 
-        new_node = set_node_tags(client, node, tags.node)
-        assert new_node.tags == tags.node
+        new_node = set_node_tags(client, node, tags["node"])
+        assert new_node.tags == tags["node"]
 
         tag_mappings[node.id] = tags
     yield tag_mappings
