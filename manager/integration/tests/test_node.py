@@ -896,8 +896,6 @@ def test_node_delete_umount_disks(client):  # NOQA
     for fsid, disk in iter(disks.items()):
         if disk.path == disk_path1:
             wait_for_disk_status(client, lht_hostId,
-                                 fsid, "allowScheduling", False)
-            wait_for_disk_status(client, lht_hostId,
                                  fsid, "storageMaximum", 0)
             wait_for_disk_conditions(client, lht_hostId, fsid,
                                      DISK_CONDITION_READY,

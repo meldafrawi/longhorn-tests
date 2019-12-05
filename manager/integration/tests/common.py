@@ -53,6 +53,7 @@ VOLUME_FIELD_ROBUSTNESS = "robustness"
 VOLUME_ROBUSTNESS_HEALTHY = "healthy"
 VOLUME_ROBUSTNESS_DEGRADED = "degraded"
 VOLUME_ROBUSTNESS_FAULTED = "faulted"
+VOLUME_ROBUSTNESS_UNKNOWN = "unknown"
 
 VOLUME_FIELD_INITIALRESTORATIONREQUIRED = "initialRestorationRequired"
 
@@ -474,6 +475,57 @@ def write_pod_volume_data(api, pod_name, test_data, filename='test'):
             tty=False)
 
 
+def write_pod_block_volume_data(api, pod_name, test_data, offset, device_path):
+    tmp_file = '/var/test_data'
+    pre_write_cmd = [
+        '/bin/sh',
+        '-c',
+        'echo -ne ' + test_data + ' > ' + tmp_file
+    ]
+    write_cmd = [
+        '/bin/sh',
+        '-c',
+        'dd if=' + tmp_file + ' of=' + device_path +
+        ' bs=' + str(len(test_data)) + ' count=1 seek=' + str(offset)
+    ]
+    with timeout(seconds=STREAM_EXEC_TIMEOUT,
+                 error_message='Timeout on executing stream write'):
+        stream(api.connect_get_namespaced_pod_exec, pod_name, 'default',
+               command=pre_write_cmd, stderr=True, stdin=False, stdout=True,
+               tty=False)
+        return stream(
+            api.connect_get_namespaced_pod_exec, pod_name, 'default',
+            command=write_cmd, stderr=True, stdin=False, stdout=True,
+            tty=False)
+
+
+def read_pod_block_volume_data(api, pod_name, data_size, offset, device_path):
+    read_command = [
+        '/bin/sh',
+        '-c',
+        'dd if=' + device_path +
+        ' status=none bs=' + str(data_size) + ' count=1 skip=' + str(offset)
+    ]
+    with timeout(seconds=STREAM_EXEC_TIMEOUT,
+                 error_message='Timeout on executing stream read'):
+        return stream(
+            api.connect_get_namespaced_pod_exec, pod_name, 'default',
+            command=read_command, stderr=True, stdin=False, stdout=True,
+            tty=False)
+
+
+def get_pod_block_volume_data_md5sum(api, pod_name, device_path):
+    md5sum_command = [
+        '/bin/sh', '-c', 'md5sum ' + device_path + " | awk '{print $1}'"
+    ]
+    with timeout(seconds=STREAM_EXEC_TIMEOUT * 3,
+                 error_message='Timeout on executing stream md5sum'):
+        return stream(
+            api.connect_get_namespaced_pod_exec, pod_name, 'default',
+            command=md5sum_command, stderr=True, stdin=False, stdout=True,
+            tty=False)
+
+
 def size_to_string(volume_size):
     # type: (int) -> str
     """
@@ -548,7 +600,7 @@ def flexvolume(request):
     flexvolume_manifest = {
         'name': generate_volume_name(),
         'flexVolume': {
-            'driver': 'rancher.io/longhorn',
+            'driver': 'driver.longhorn.io',
             'fsType': 'ext4',
             'options': {
                 'size': size_to_string(DEFAULT_VOLUME_SIZE * Gi),
@@ -858,7 +910,7 @@ def storage_class(request):
         'metadata': {
             'name': DEFAULT_STORAGECLASS_NAME
         },
-        'provisioner': 'rancher.io/longhorn',
+        'provisioner': 'driver.longhorn.io',
         'parameters': {
             'numberOfReplicas': DEFAULT_LONGHORN_PARAMS['numberOfReplicas'],
             'staleReplicaTimeout':
@@ -1124,6 +1176,13 @@ def wait_for_volume_detached(client, name):
     return wait_for_volume_status(client, name,
                                   VOLUME_FIELD_STATE,
                                   VOLUME_STATE_DETACHED)
+
+
+def wait_for_volume_detached_unknown(client, name):
+    wait_for_volume_status(client, name,
+                           VOLUME_FIELD_ROBUSTNESS,
+                           VOLUME_ROBUSTNESS_UNKNOWN)
+    return wait_for_volume_detached(client, name)
 
 
 def wait_for_volume_healthy(client, name):
@@ -2011,7 +2070,7 @@ def reset_engine_image(client):
                     ready = False
             else:
                 client.delete(ei)
-                wait_for_engine_image_deletion(ei.name, core_api, client)
+                wait_for_engine_image_deletion(client, core_api, ei.name)
         if ready:
             break
         time.sleep(RETRY_INTERVAL)
@@ -2213,6 +2272,12 @@ def delete_storage_class(sc_name):
         assert e.status == 404
 
 
+def create_pvc(pvc_manifest):
+    api = get_core_api_client()
+    api.create_namespaced_persistent_volume_claim(
+        'default', pvc_manifest)
+
+
 def update_statefulset_manifests(ss_manifest, sc_manifest, name):
     """
     Write in a new StatefulSet name and the proper StorageClass name for tests.
@@ -2389,13 +2454,17 @@ def activate_standby_volume(client, volume_name, frontend="blockdev"):
                 engines[0].lastRestoredBackup != volume.lastBackup:
             time.sleep(RETRY_INTERVAL)
             continue
+        activated = False
         try:
             volume.activate(frontend=frontend)
+            activated = True
             break
         except Exception as e:
             assert "hasn't finished incremental restored" \
                    in str(e.error.message)
             time.sleep(RETRY_INTERVAL)
+        if activated:
+            break
     volume = client.by_id_volume(volume_name)
     assert volume.standby is False
     assert volume.frontend == "blockdev"
@@ -2570,3 +2639,20 @@ def create_snapshot(longhorn_api_client, volume_name):
 
     assert snapshot_created
     return snap
+
+
+def wait_and_get_pv_for_pvc(api, pvc_name):
+    found = False
+    for i in range(RETRY_COUNTS):
+        pvs = api.list_persistent_volume()
+        for item in pvs.items:
+            if item.spec.claim_ref.name == pvc_name:
+                found = True
+                pv = item
+                break
+        if found:
+            break
+        time.sleep(RETRY_INTERVAL)
+
+    assert found
+    return pv

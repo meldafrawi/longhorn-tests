@@ -16,18 +16,40 @@ from common import delete_and_wait_pod
 from common import delete_and_wait_pv
 from common import delete_and_wait_pvc
 from common import delete_and_wait_volume_attachment
+from common import DIRECTORY_PATH
+from common import find_backup
 from common import generate_pod_with_pvc_manifest
 from common import generate_random_data
 from common import get_core_api_client
 from common import get_longhorn_api_client
+from common import get_self_host_id
 from common import get_storage_api_client
+from common import get_volume_endpoint
 from common import Gi
+from common import mount_disk
 from common import read_volume_data
+from common import RETRY_COUNTS
+from common import set_random_backupstore
+from common import SETTING_BACKUP_TARGET
+from common import umount_disk
+from common import wait_for_backup_completion
 from common import wait_for_snapshot_purge
 from common import wait_for_volume_detached
+from common import wait_for_volume_healthy
+from common import wait_for_volume_healthy_no_frontend
+from common import wait_for_volume_replica_count
+from common import wait_for_volume_restoration_completed
 from common import write_pod_volume_data
 from kubernetes.stream import stream
 from random import randrange
+from test_scheduling import wait_new_replica_ready
+
+
+# Configuration options
+N_RANDOM_ACTIONS = 10
+WAIT_REPLICA_REBUILD = True   # True, False, None=random
+PURGE_DELETED_SNAPSHOT = None  # True, False, None=random
+WAIT_BACKUP_COMPLETE = True  # True, False, None=random
 
 
 NPODS = os.getenv("STRESS_TEST_NPODS")
@@ -49,11 +71,41 @@ STRESS_VOLUME_NAME_PREFIX = "stress-test-volume-"
 STRESS_RANDOM_DATA_DIR = "/tmp/"
 STRESS_DATAFILE_NAME_PREFIX = "data-"
 STRESS_DATAFILE_NAME_SUFFIX = ".bin"
+STRESS_DEST_DIR = '/data/'
 
 VOLUME_SIZE = str(2 * Gi)
 TEST_DATA_BYTES = 1 * Gi
 
 READ_MD5SUM_TIMEOUT = 60
+
+
+class snapshot_data:
+    def __init__(self, snapshot_name):
+        self.snapshot_name = snapshot_name
+        self.removed = False
+        self.backup_name = None
+        self.backup_url = None
+        self.data_md5sum = None
+
+    def set_backup_name(self, backup_name):
+        self.backup_name = backup_name
+
+    def set_backup_url(self, backup_url):
+        self.backup_url = backup_url
+
+    def set_data_md5sum(self, data_md5sum):
+        self.data_md5sum = data_md5sum
+
+    def mark_as_removed(self):
+        self.removed = True
+
+
+# set random backupstore if not defined
+def check_and_set_backupstore(client):
+    setting = client.by_id_setting(SETTING_BACKUP_TARGET)
+
+    if setting["value"] == "":
+        set_random_backupstore(client)
 
 
 def get_random_suffix():
@@ -67,6 +119,249 @@ def get_md5sum(file_path):
         for chunk in iter(lambda: f.read(4096), b""):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
+
+
+def get_random_snapshot(snapshots_md5sum):
+    snapshots = snapshots_md5sum.keys()
+
+    snapshots_count = len(snapshots)
+
+    if snapshots_count == 0:
+        return None
+
+    for i in range(RETRY_COUNTS):
+        snapshot_id = randrange(0, snapshots_count)
+        snapshot = snapshots[snapshot_id]
+
+        if snapshots_md5sum[snapshot].removed is True:
+            continue
+        else:
+            break
+
+    if snapshots_md5sum[snapshot].removed is True:
+        return None
+    else:
+        return snapshot
+
+
+def get_random_backup_snapshot_data(snapshots_md5sum):
+    snapshots = snapshots_md5sum.keys()
+
+    snapshots_count = len(snapshots)
+
+    if snapshots_count == 0:
+        return None
+
+    for i in range(RETRY_COUNTS):
+        snapshot_id = randrange(0, snapshots_count)
+        snapshot = snapshots[snapshot_id]
+
+        if snapshots_md5sum[snapshot].backup_name is None:
+            continue
+        else:
+            break
+
+    if snapshots_md5sum[snapshot].backup_name is None:
+        return None
+    else:
+        return snapshots_md5sum[snapshot]
+
+
+def get_recurring_jobs():
+    backup_job = {"name": "backup", "cron": "*/5 * * * *",
+                  "task": "backup", "retain": 3}
+
+    snapshot_job = {"name": "snap", "cron": "*/2 * * * *",
+                    "task": "snapshot", "retain": 5}
+
+    return [backup_job, snapshot_job]
+
+
+def create_recurring_jobs(client, volume_name):
+    volume = client.by_id_volume(volume_name)
+
+    recurring_jobs = get_recurring_jobs()
+
+    volume.recurringUpdate(jobs=recurring_jobs)
+
+
+def read_data_md5sum(k8s_api_client, pod_name):
+    file_name = get_data_filename(pod_name)
+    dest_file_path = os.path.join(STRESS_DEST_DIR, file_name)
+
+    exec_command = exec_command = ['/bin/sh']
+    resp = stream(k8s_api_client.connect_get_namespaced_pod_exec,
+                  pod_name,
+                  'default',
+                  command=exec_command,
+                  stderr=True, stdin=True,
+                  stdout=True, tty=False,
+                  _preload_content=False)
+
+    resp.write_stdin("md5sum " + dest_file_path + "\n")
+    res = resp.readline_stdout(timeout=READ_MD5SUM_TIMEOUT).split()[0]
+
+    return res
+
+
+def snapshot_create_and_record_md5sum(client, core_api, volume_name, pod_name, snapshots_md5sum): # NOQA
+    data_md5sum = read_data_md5sum(core_api, pod_name)
+    snap = create_snapshot(client, volume_name)
+
+    snap_data = snapshot_data(snap["name"])
+    snap_data.set_data_md5sum(data_md5sum)
+    snapshots_md5sum[snap["name"]] = snap_data
+
+    return snap["name"]
+
+
+def revert_random_snapshot(client, core_api, volume_name, pod_manifest, snapshots_md5sum): # NOQA
+    volume = client.by_id_volume(volume_name)
+    host_id = get_self_host_id()
+    pod_name = pod_manifest["metadata"]["name"]
+
+    snapshot = get_random_snapshot(snapshots_md5sum)
+
+    if snapshot is None:
+        return
+
+    delete_and_wait_pod(core_api, pod_name)
+
+    wait_for_volume_detached(client, volume_name)
+
+    volume = client.by_id_volume(volume_name)
+
+    volume.attach(hostId=host_id, disableFrontend=True)
+
+    volume = wait_for_volume_healthy_no_frontend(client, volume_name)
+
+    volume.snapshotRevert(name=snapshot)
+
+    volume = client.by_id_volume(volume_name)
+
+    volume.detach()
+
+    wait_for_volume_detached(client, volume_name)
+
+    create_and_wait_pod(core_api, pod_manifest)
+
+    current_md5sum = read_data_md5sum(core_api, pod_name)
+
+    assert current_md5sum == snapshots_md5sum[snapshot].data_md5sum
+
+
+def backup_create_and_record_md5sum(client, core_api, volume_name, pod_name, snapshots_md5sum): # NOQA
+    volume = client.by_id_volume(volume_name)
+
+    data_md5sum = read_data_md5sum(core_api, pod_name)
+
+    snap_name = snapshot_create_and_record_md5sum(client,
+                                                  core_api,
+                                                  volume_name,
+                                                  pod_name,
+                                                  snapshots_md5sum)
+    snap = snapshot_data(snap_name)
+
+    snapshots_md5sum[snap_name] = snap
+
+    volume.snapshotBackup(name=snap_name)
+
+    global WAIT_BACKUP_COMPLETE
+    if WAIT_BACKUP_COMPLETE is None:
+        WAIT_BACKUP_COMPLETE = bool(random.getrandbits(1))
+
+    if WAIT_BACKUP_COMPLETE is True:
+        wait_for_backup_completion(client, volume_name, snap_name)
+
+    _, b = find_backup(client, volume_name, snap_name)
+
+    snap.set_backup_name(b["name"])
+    snap.set_backup_url(b["url"])
+    snap.set_data_md5sum(data_md5sum)
+
+
+def restore_and_check_random_backup(client, core_api, volume_name, pod_name, snapshots_md5sum): # NOQA
+    res_volume_name = volume_name + '-restore'
+
+    host_id = get_self_host_id()
+
+    snap_data = get_random_backup_snapshot_data(snapshots_md5sum)
+
+    if snap_data is None:
+        return
+
+    backup_url = snap_data.backup_url
+
+    client.create_volume(name=res_volume_name,
+                         size=VOLUME_SIZE,
+                         fromBackup=backup_url)
+
+    wait_for_volume_restoration_completed(client, res_volume_name)
+
+    wait_for_volume_detached(client, res_volume_name)
+
+    res_volume = client.by_id_volume(res_volume_name)
+
+    res_volume.attach(hostId=host_id)
+
+    res_volume = wait_for_volume_healthy(client, res_volume_name)
+
+    dev = get_volume_endpoint(res_volume)
+
+    mount_path = os.path.join(DIRECTORY_PATH, res_volume_name)
+
+    command = ['mkdir', '-p', mount_path]
+    subprocess.check_call(command)
+
+    mount_disk(dev, mount_path)
+
+    datafile_name = get_data_filename(pod_name)
+    datafile_path = os.path.join(mount_path, datafile_name)
+
+    command = ['md5sum', datafile_path]
+    output = subprocess.check_output(command)
+
+    bkp_data_md5sum = output.split()[0]
+
+    bkp_checksum_ok = False
+    if snap_data.data_md5sum == bkp_data_md5sum:
+        bkp_checksum_ok = True
+
+    umount_disk(mount_path)
+
+    command = ['rmdir', mount_path]
+    subprocess.check_call(command)
+
+    res_volume = client.by_id_volume(res_volume_name)
+
+    res_volume.detach()
+
+    wait_for_volume_detached(client, res_volume_name)
+
+    delete_and_wait_longhorn(client, res_volume_name)
+
+    assert bkp_checksum_ok
+
+
+def delete_replica(client, volume_name):
+    volume = client.by_id_volume(volume_name)
+
+    replica_count = len(volume.replicas)
+
+    replica_id = randrange(0, replica_count)
+
+    replica_name = volume["replicas"][replica_id]["name"]
+
+    volume.replicaRemove(name=replica_name)
+
+    global WAIT_REPLICA_REBUILD
+    if WAIT_REPLICA_REBUILD is None:
+        WAIT_REPLICA_REBUILD = bool(random.getrandbits(1))
+
+    if WAIT_REPLICA_REBUILD is True:
+        wait_for_volume_replica_count(client, volume_name, replica_count)
+        replica_names = map(lambda replica: replica.name, volume["replicas"])
+        wait_new_replica_ready(client, volume_name, replica_names)
 
 
 def write_data(k8s_api_client, pod_name):
@@ -129,28 +424,24 @@ def purge_random_snapshot(longhorn_api_client, volume_name, snapshot_name):
     )
 
 
-def delete_random_snapshot(longhorn_api_client, volume_name):
-    volume = longhorn_api_client.by_id_volume(volume_name)
+def delete_random_snapshot(client, volume_name, snapshots_md5sum):
+    volume = client.by_id_volume(volume_name)
 
-    snapshots = volume.snapshotList(volume=volume_name)
+    snapshot = get_random_snapshot(snapshots_md5sum)
 
-    snapshots_count = len(snapshots.data)
+    if snapshot is None:
+        return
 
-    while True:
-        snapshot_id = randrange(0, snapshots_count)
+    volume.snapshotDelete(name=snapshot)
 
-        if snapshots.data[snapshot_id].name == "volume-head":
-            continue
-        else:
-            break
-    snapshot_name = snapshots.data[snapshot_id].name
+    snapshots_md5sum[snapshot].mark_as_removed()
 
-    volume.snapshotDelete(name=snapshot_name)
+    global PURGE_DELETED_SNAPSHOT
+    if PURGE_DELETED_SNAPSHOT is None:
+        PURGE_DELETED_SNAPSHOT = bool(random.getrandbits(1))
 
-    trigger_purge = randrange(0, 2)
-
-    if trigger_purge == 1:
-        purge_random_snapshot(longhorn_api_client, volume_name, snapshot_name)
+    if PURGE_DELETED_SNAPSHOT is True:
+        purge_random_snapshot(client, volume_name, snapshot)
 
 
 def get_data_filename(pod_name):
@@ -177,6 +468,8 @@ def generate_load(request):
 
     longhorn_api_client = get_longhorn_api_client()
     k8s_api_client = get_core_api_client()
+
+    check_and_set_backupstore(longhorn_api_client)
 
     volume_name = STRESS_VOLUME_NAME_PREFIX + index
     pv_name = STRESS_PV_NAME_PREFIX + index
@@ -211,27 +504,59 @@ def generate_load(request):
 
     create_and_wait_pod(k8s_api_client, pod_manifest)
 
-    write_data(k8s_api_client, pod_name)
-    create_snapshot(longhorn_api_client, volume_name)
-    write_data(k8s_api_client, pod_name)
-    create_snapshot(longhorn_api_client, volume_name)
-    delete_data(k8s_api_client, pod_name)
-    create_snapshot(longhorn_api_client, volume_name)
+    snapshots_md5sum = dict()
 
-    delete_random_snapshot(longhorn_api_client, volume_name)
+    write_data(k8s_api_client, pod_name)
+    create_recurring_jobs(longhorn_api_client, volume_name)
 
-    # execute 3 more random actions
-    for round in range(3):
-        action = randrange(0, 4)
+    global N_RANDOM_ACTIONS
+    for round in range(N_RANDOM_ACTIONS):
+        action = randrange(0, 8)
 
         if action == 0:
+            print("write data")
             write_data(k8s_api_client, pod_name)
         elif action == 1:
+            print("delete data")
             delete_data(k8s_api_client, pod_name)
         elif action == 2:
-            create_snapshot(longhorn_api_client, volume_name)
+            print("create snapshot")
+            snapshot_create_and_record_md5sum(longhorn_api_client,
+                                              k8s_api_client,
+                                              volume_name,
+                                              pod_name,
+                                              snapshots_md5sum)
         elif action == 3:
-            delete_random_snapshot(longhorn_api_client, volume_name)
+            print("delete random snapshot")
+            delete_random_snapshot(longhorn_api_client,
+                                   volume_name,
+                                   snapshots_md5sum)
+
+        elif action == 4:
+            print("revert random snapshot")
+            revert_random_snapshot(longhorn_api_client,
+                                   k8s_api_client,
+                                   volume_name,
+                                   pod_manifest,
+                                   snapshots_md5sum)
+        elif action == 5:
+            print("create backup")
+            backup_create_and_record_md5sum(longhorn_api_client,
+                                            k8s_api_client,
+                                            volume_name,
+                                            pod_name,
+                                            snapshots_md5sum)
+        elif action == 6:
+            print("delete replica")
+            delete_replica(longhorn_api_client, volume_name)
+
+        elif action == 7:
+            print("restore random backup")
+            restore_and_check_random_backup(longhorn_api_client,
+                                            k8s_api_client,
+                                            volume_name,
+                                            pod_name,
+                                            snapshots_md5sum)
 
 
 @pytest.mark.stress

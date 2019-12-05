@@ -637,12 +637,9 @@ def restore_inc_test(client, core_api, volume_name, pod):  # NOQA
         sb_engine0 = get_volume_engine(sb_volume0)
         sb_engine1 = get_volume_engine(sb_volume1)
         sb_engine2 = get_volume_engine(sb_volume2)
-        if sb_volume0.lastBackup != backup0.name or \
-                sb_volume1.lastBackup != backup0.name or \
-                sb_volume2.lastBackup != backup0.name or \
-                sb_engine0.lastRestoredBackup != backup0.name or \
-                sb_engine1.lastRestoredBackup != backup0.name or \
-                sb_engine2.lastRestoredBackup != backup0.name:
+        if sb_volume0.initialRestorationRequired is True or \
+           sb_volume1.initialRestorationRequired is True or \
+           sb_volume2.initialRestorationRequired is True:
             time.sleep(RETRY_INTERVAL)
         else:
             break
@@ -1247,14 +1244,17 @@ def test_storage_class_from_backup(volume_name, pvc_name, storage_class, clients
             break
         time.sleep(RETRY_INTERVAL)
 
-    volumes = client.list_volume()
-
     found = False
-    for volume in volumes:
-        if volume.kubernetesStatus.pvcName == backup_pvc_name:
-            backup_volume_name = volume.name
-            found = True
+    for i in range(RETRY_COUNTS):
+        volumes = client.list_volume()
+        for volume in volumes:
+            if volume.kubernetesStatus.pvcName == backup_pvc_name:
+                backup_volume_name = volume.name
+                found = True
+                break
+        if found:
             break
+        time.sleep(RETRY_INTERVAL)
     assert found
 
     wait_for_volume_restoration_completed(client, backup_volume_name)
