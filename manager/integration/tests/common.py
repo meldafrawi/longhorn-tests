@@ -2395,13 +2395,16 @@ def wait_volume_kubernetes_status(client, volume_name, expect_ks):
         expected = True
         volume = client.by_id_volume(volume_name)
         ks = volume.kubernetesStatus
+        ks = json.loads(json.dumps(ks, default=lambda o: o.__dict__))
+
         for k, v in expect_ks.items():
             if k in ('lastPVCRefAt', 'lastPodRefAt'):
-                if (v != '' and getattr(ks, k) == '') or (v == '' and getattr(ks, k) != ''):
+                if (v != '' and ks.get(k) == '') or (v == '' and ks.get(k) != ''):
                     expected = False
                     break
             else:
-                if getattr(ks, k) != v:
+                #if getattr(ks, k) != v:
+                if ks.get(k) != v:
                     expected = False
                     break
         if expected:
