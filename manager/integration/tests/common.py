@@ -1414,7 +1414,7 @@ def crash_replica_processes(client, api, volname):
     for r in volume.replicas:
         kill_command = [
             '/bin/sh', '-c',
-            "kill `ps aux | grep '" + r['dataPath'] +
+            "kill `ps aux | grep '" + r.get('dataPath') +
             "' | grep -v grep | awk '{print $2}'`"
         ]
         with timeout(seconds=STREAM_EXEC_TIMEOUT,
@@ -1425,7 +1425,7 @@ def crash_replica_processes(client, api, volname):
                    stderr=True, stdin=False, stdout=True, tty=False)
 
     for r in volume.replicas:
-        wait_for_replica_failed(client, volname, r['name'])
+        wait_for_replica_failed(client, volname, r.get('name'))
 
 
 def wait_for_replica_failed(client, volname, replica_name):
@@ -1434,16 +1434,16 @@ def wait_for_replica_failed(client, volname, replica_name):
         time.sleep(RETRY_INTERVAL)
         failed = True
         volume = client.by_id_volume(volname)
-        for r in volume.replicas:
-            if r['name'] != replica_name:
+        for r1 in volume.replicas:
+            if r1.get('name') != replica_name:
                 continue
-            if r['running'] or r['failedAt'] == "":
+            if r1.get('running') or r1.get('failedAt') == "":
                 failed = False
                 break
-            if r.instanceManagerName != "":
+            if r1.get('instanceManagerName') != "":
                 im = client.by_id_instance_manager(
-                    r.instanceManagerName)
-                if r['name'] in im['instances']:
+                    r1.get('instanceManagerName'))
+                if r1.get('name') in im.get('instances').__dict__:
                     failed = False
                     break
         if failed:
