@@ -1,4 +1,3 @@
-#!/usr/sbin/python
 import pytest
 import time
 
@@ -47,14 +46,14 @@ def create_and_test_backups(api, cli, pod_info):
         write_pod_volume_data(api, pod['pod_name'], pod['data'])
         pod['backup_snapshot'] = create_snapshot(cli, volume_name)
         create_snapshot(cli, volume_name)
-        volume.snapshotBackup(name=pod['backup_snapshot']['name'])
+        volume.snapshotBackup(name=pod.get('backup_snapshot').get('name'))
 
         # Wait for backup to appear.
         found = False
         for i in range(DEFAULT_BACKUP_TIMEOUT):
             backup_volumes = cli.list_backupVolume()
             for bv in backup_volumes:
-                if bv['name'] == pod['pv_name']:
+                if bv.name == pod['pv_name']:
                     found = True
                     break
             if found:
@@ -66,7 +65,7 @@ def create_and_test_backups(api, cli, pod_info):
         for i in range(DEFAULT_BACKUP_TIMEOUT):
             backups = bv.backupList().data
             for b in backups:
-                if b['snapshotName'] == pod['backup_snapshot']['name']:
+                if b.snapshotName == pod.get('backup_snapshot').get('name'):
                     found = True
                     break
             if found:
@@ -75,15 +74,15 @@ def create_and_test_backups(api, cli, pod_info):
         assert found
 
         # Make sure backup has the correct attributes.
-        new_b = bv.backupGet(name=b["name"])
-        assert new_b["name"] == b["name"]
-        assert new_b["url"] == b["url"]
-        assert new_b["snapshotName"] == b["snapshotName"]
-        assert new_b["snapshotCreated"] == b["snapshotCreated"]
-        assert new_b["created"] == b["created"]
-        assert new_b["volumeName"] == b["volumeName"]
-        assert new_b["volumeSize"] == b["volumeSize"]
-        assert new_b["volumeCreated"] == b["volumeCreated"]
+        new_b = bv.backupGet(name=b.name)
+        assert new_b.name == b.name
+        assert new_b.url == b.url
+        assert new_b.snapshotName == b.snapshotName
+        assert new_b.snapshotCreated == b.snapshotCreated
+        assert new_b.created == b.created
+        assert new_b.volumeName == b.volumeName
+        assert new_b.volumeSize == b.volumeSize
+        assert new_b.volumeCreated == b.volumeCreated
 
         # This backup has the url attribute we need to restore from backup.
         pod['backup_snapshot'] = b
@@ -104,21 +103,21 @@ def test_statefulset_mount(client, core_api, storage_class, statefulset):  # NOQ
     pod_info = get_statefulset_pod_info(core_api, statefulset)
 
     volumes = client.list_volume()
-    assert len(volumes) == statefulset['spec']['replicas']
+    assert volumes.__len__() == statefulset['spec']['replicas']
     for v in volumes:
         # Workaround for checking volume name since they differ per pod.
         found = False
         for pod in pod_info:
-            if v['name'] == pod['pv_name']:
+            if v.name == pod['pv_name']:
                 found = True
                 break
         assert found
         pod_info.remove(pod)
 
-        assert v['size'] == str(DEFAULT_VOLUME_SIZE * Gi)
-        assert v['numberOfReplicas'] == \
+        assert v.size == str(DEFAULT_VOLUME_SIZE * Gi)
+        assert v.numberOfReplicas == \
             int(storage_class['parameters']['numberOfReplicas'])
-        assert v['state'] == 'attached'
+        assert v.state == 'attached'
     # Confirm that we've iterated through all the volumes.
     assert len(pod_info) == 0
 
@@ -138,20 +137,20 @@ def test_statefulset_scaling(client, core_api, storage_class, statefulset):  # N
     pod_info = get_statefulset_pod_info(core_api, statefulset)
 
     volumes = client.list_volume()
-    assert len(volumes) == statefulset['spec']['replicas']
+    assert volumes.__len__() == statefulset['spec']['replicas']
     for v in volumes:
         found = False
         for pod in pod_info:
-            if v['name'] == pod['pv_name']:
+            if v.name == pod['pv_name']:
                 found = True
                 break
         assert found
         pod_info.remove(pod)
 
-        assert v['size'] == str(DEFAULT_VOLUME_SIZE * Gi)
-        assert v['numberOfReplicas'] == \
+        assert v.size == str(DEFAULT_VOLUME_SIZE * Gi)
+        assert v.numberOfReplicas == \
             int(storage_class['parameters']['numberOfReplicas'])
-        assert v['state'] == 'attached'
+        assert v.state == 'attached'
     assert len(pod_info) == 0
 
     statefulset['spec']['replicas'] = replicas = 3
@@ -176,20 +175,20 @@ def test_statefulset_scaling(client, core_api, storage_class, statefulset):  # N
     pod_info = get_statefulset_pod_info(core_api, statefulset)
 
     volumes = client.list_volume()
-    assert len(volumes) == replicas
+    assert volumes.__len__() == replicas
     for v in volumes:
         found = False
         for pod in pod_info:
-            if v['name'] == pod['pv_name']:
+            if v.name == pod['pv_name']:
                 found = True
                 break
         assert found
         pod_info.remove(pod)
 
-        assert v['size'] == str(DEFAULT_VOLUME_SIZE * Gi)
-        assert v['numberOfReplicas'] == \
+        assert v.size == str(DEFAULT_VOLUME_SIZE * Gi)
+        assert v.numberOfReplicas == \
             int(storage_class['parameters']['numberOfReplicas'])
-        assert v['state'] == 'attached'
+        assert v.state == 'attached'
     assert len(pod_info) == 0
 
 
@@ -272,7 +271,7 @@ def test_statefulset_recurring_backup(client, core_api, storage_class,  # NOQA
         snapshots = volume.snapshotList()
         count = 0
         for snapshot in snapshots:
-            if snapshot['removed'] is False:
+            if snapshot.removed is False:
                 count += 1
 
         # two backups + volume-head
@@ -377,13 +376,13 @@ def test_statefulset_restore(client, core_api, storage_class,  # NOQA
                 size=size_to_string(DEFAULT_VOLUME_SIZE * Gi),
                 numberOfReplicas=int(
                     storage_class['parameters']['numberOfReplicas']),
-                fromBackup=pod['backup_snapshot']['url'])
+                fromBackup=pod.get('backup_snapshot').get('url'))
             wait_for_volume_detached(client, pod['pvc_name'])
 
             pv['spec']['csi']['volumeHandle'] = pod['pvc_name']
         else:
             pv['spec']['flexVolume']['options']['fromBackup'] = \
-                pod['backup_snapshot']['url']
+                pod.get('backup_snapshot').get('url')
 
         core_api.create_persistent_volume(pv)
 
