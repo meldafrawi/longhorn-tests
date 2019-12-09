@@ -33,7 +33,7 @@ def check_jobs1_result(volume):
     snapshots = volume.snapshotList()
     count = 0
     for snapshot in snapshots:
-        if snapshot["removed"] is False:
+        if snapshot.removed is False:
             count += 1
     # 2 snapshots, 1 backup, 1 volume-head
     assert count == 4
@@ -41,7 +41,7 @@ def check_jobs1_result(volume):
 
 @pytest.mark.recurring_job  # NOQA
 def test_recurring_job(clients, volume_name):  # NOQA
-    for host_id, client in clients.iteritems():  # NOQA
+    for host_id, client in iter(clients.items()):  # NOQA
         break
 
     set_random_backupstore(client)
@@ -70,7 +70,7 @@ def test_recurring_job(clients, volume_name):  # NOQA
     snapshots = volume.snapshotList()
     count = 0
     for snapshot in snapshots:
-        if snapshot["removed"] is False:
+        if snapshot.removed is False:
             count += 1
     # 2 from job_snap, 1 from job_backup, 2 from job_backup2, 1 volume-head
     assert count == 6
@@ -78,11 +78,11 @@ def test_recurring_job(clients, volume_name):  # NOQA
     complete_backup_number = 0
     in_progress_backup_number = 0
     volume = client.by_id_volume(volume_name)
-    for b in volume['backupStatus']:
-        assert b['error'] == ""
-        if b['state'] == "complete":
+    for b in volume.backupStatus:
+        assert b.error == ""
+        if b.state == "complete":
             complete_backup_number += 1
-        elif b['state'] == "in_progress":
+        elif b.state == "in_progress":
             in_progress_backup_number += 1
     assert complete_backup_number <= MAX_BACKUP_STATUS_SIZE
     # 1 from job_backup, 1 from job_backup2
@@ -97,12 +97,12 @@ def test_recurring_job(clients, volume_name):  # NOQA
     wait_for_volume_delete(client, volume_name)
 
     volumes = client.list_volume()
-    assert len(volumes) == 0
+    assert volumes.__len__() == 0
 
 
 @pytest.mark.recurring_job  # NOQA
 def test_recurring_job_in_volume_creation(clients, volume_name):  # NOQA
-    for host_id, client in clients.iteritems():  # NOQA
+    for host_id, client in iter(clients.items()):  # NOQA
         break
 
     set_random_backupstore(client)
@@ -132,7 +132,7 @@ def test_recurring_job_in_volume_creation(clients, volume_name):  # NOQA
     wait_for_volume_delete(client, volume_name)
 
     volumes = client.list_volume()
-    assert len(volumes) == 0
+    assert volumes.__len__() == 0
 
 
 @pytest.mark.recurring_job  # NOQA
@@ -140,7 +140,7 @@ def test_recurring_job_in_storageclass(client, core_api, storage_class, stateful
     set_random_backupstore(client)
     statefulset_name = 'recurring-job-in-storageclass-test'
     update_statefulset_manifests(statefulset, storage_class, statefulset_name)
-    storage_class['parameters']['recurringJobs'] = json.dumps(create_jobs1())
+    storage_class["parameters"]["recurringJobs"] = json.dumps(create_jobs1())
 
     create_storage_class(storage_class)
     create_and_wait_statefulset(statefulset)
@@ -190,7 +190,7 @@ def recurring_job_labels_test(client, labels, volume_name, size=SIZE, base_image
     snapshots = volume.snapshotList()
     count = 0
     for snapshot in snapshots:
-        if snapshot["removed"] is False:
+        if snapshot.removed is False:
             count += 1
     # 1 from Backup, 1 from Volume Head.
     assert count == 2
@@ -198,19 +198,19 @@ def recurring_job_labels_test(client, labels, volume_name, size=SIZE, base_image
     # Verify the Labels on the actual Backup.
     bv = client.by_id_backupVolume(volume_name)
     backups = bv.backupList().data
-    assert len(backups) == 1
+    assert backups.__len__() == 1
 
-    b = bv.backupGet(name=backups[0]["name"])
-    for key, val in labels.iteritems():
-        assert b["labels"].get(key) == val
-    assert b["labels"].get(RECURRING_JOB_LABEL) == RECURRING_JOB_NAME
+    b = bv.backupGet(name=backups[0].name)
+    for key, val in iter(labels.items()):
+        assert b.labels.get(key) == val
+    assert b.labels.get(RECURRING_JOB_LABEL) == RECURRING_JOB_NAME
     if base_image:
-        assert b["labels"].get(BASE_IMAGE_LABEL) == base_image
+        assert b.labels.get(BASE_IMAGE_LABEL) == base_image
         # One extra Label from the BaseImage being set.
-        assert len(b["labels"]) == len(labels) + 2
+        assert b.labels.__len__() == labels.__len__() + 2
     else:
         # At least one extra Label from RecurringJob.
-        assert len(b["labels"]) == len(labels) + 1
+        assert b.labels.__len__() == labels.__len__() + 1
 
     cleanup_volume(client, volume)
 
@@ -258,7 +258,7 @@ def test_recurring_job_kubernetes_status(client, core_api, volume_name):  # NOQA
     snapshots = volume.snapshotList()
     count = 0
     for snapshot in snapshots:
-        if snapshot["removed"] is False:
+        if snapshot.removed is False:
             count += 1
     # 1 from Backup, 1 from Volume Head.
     assert count == 2
@@ -266,11 +266,11 @@ def test_recurring_job_kubernetes_status(client, core_api, volume_name):  # NOQA
     # Verify the Labels on the actual Backup.
     bv = client.by_id_backupVolume(volume_name)
     backups = bv.backupList().data
-    assert len(backups) == 1
+    assert backups.__len__() == 1
 
-    b = bv.backupGet(name=backups[0]["name"])
-    status = json.loads(b["labels"].get(KUBERNETES_STATUS_LABEL))
-    assert b["labels"].get(RECURRING_JOB_LABEL) == RECURRING_JOB_NAME
+    b = bv.backupGet(name=backups[0].name)
+    status = json.loads(b.labels.get(KUBERNETES_STATUS_LABEL))
+    assert b.labels.get(RECURRING_JOB_LABEL) == RECURRING_JOB_NAME
     assert status == {
         'lastPodRefAt': '',
         'lastPVCRefAt': '',
@@ -281,7 +281,7 @@ def test_recurring_job_kubernetes_status(client, core_api, volume_name):  # NOQA
         'workloadsStatus': None
     }
     # Two Labels: KubernetesStatus and RecurringJob.
-    assert len(b["labels"]) == 2
+    assert b.labels.__len__() == 2
 
     cleanup_volume(client, volume)
     delete_and_wait_pv(core_api, pv_name)
