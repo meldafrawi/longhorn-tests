@@ -87,7 +87,6 @@ def test_soft_anti_affinity_scheduling(client, volume_name):  # NOQA
 
     volume.replicaRemove(name=host_replica.name)
     wait_new_replica_ready(client, volume_name, replica_names)
-    breakpoint()
     volume = wait_for_volume_healthy(client, volume_name)
     assert volume.replicas.__len__() == 3
     check_volume_data(volume, data)

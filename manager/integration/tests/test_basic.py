@@ -330,7 +330,6 @@ def snapshot_test(clients, volume_name, base_image):  # NOQA
     assert snapMap[snap3.name].name == snap3.name
     assert snapMap[snap3.name].parent == snap2.name
     assert snapMap[snap3.name].children.__len__() == 1
-    #assert "volume-head" in snapMap[snap3.name].children
     assert "volume-head" in snapMap[snap3.name].children.keys()
     assert snapMap[snap3.name].removed is True
 

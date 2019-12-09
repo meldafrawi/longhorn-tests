@@ -1304,7 +1304,7 @@ def wait_for_snapshot_purge(client, volume_name, *snaps):
 
             progress = status.progress
             replica = status.replica
-            last = last_purge_progress.get(status.replica)
+            last = last_purge_progress.get(replica)
             assert last is None or last <= status.progress
             last_purge_progress["replica"] = progress
 
@@ -1750,7 +1750,6 @@ def wait_for_volume_condition_scheduled(client, name, key, value):
     for i in range(RETRY_COUNTS):
         volume = client.by_id_volume(name)
         conditions = volume.conditions
-        #breakpoint()
         if conditions is not None and \
                 conditions != {} and \
                 conditions.get(VOLUME_CONDITION_SCHEDULED) and \
@@ -2399,11 +2398,11 @@ def wait_volume_kubernetes_status(client, volume_name, expect_ks):
 
         for k, v in expect_ks.items():
             if k in ('lastPVCRefAt', 'lastPodRefAt'):
-                if (v != '' and ks.get(k) == '') or (v == '' and ks.get(k) != ''):
+                if (v != '' and ks.get(k) == '') or \
+                   (v == '' and ks.get(k) != ''):
                     expected = False
                     break
             else:
-                #if getattr(ks, k) != v:
                 if ks.get(k) != v:
                     expected = False
                     break

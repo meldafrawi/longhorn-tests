@@ -300,14 +300,17 @@ def test_replica_scheduler_large_volume_fit_small_disk(client):  # NOQA
     unexpected_disk = {}
     for fsid, disk in iter(node.disks.items()):
         if disk.path == small_disk_path:
-            #breakpoint()
             unexpected_disk["fsid"] = fsid
             unexpected_disk["path"] = disk.get("path")
             break
 
     # volume is too large to fill into small size disk on current node
     vol_name = common.generate_volume_name()
-    volume = create_volume(client, vol_name, str(Gi), lht_hostId, nodes.__len__())
+    volume = create_volume(client,
+                           vol_name,
+                           str(Gi),
+                           lht_hostId,
+                           nodes.__len__())
 
     nodes = client.list_node()
     node_hosts = []
@@ -331,7 +334,6 @@ def test_replica_scheduler_large_volume_fit_small_disk(client):  # NOQA
     # cleanup test disks
     node = client.by_id_node(lht_hostId)
     disks = node.disks
-    #breakpoint()
     disk = disks.get(unexpected_disk["fsid"])
     disk.allowScheduling = False
     update_disks = get_update_disks(disks)
@@ -510,7 +512,8 @@ def test_replica_scheduler_exceed_over_provisioning(client):  # NOQA
 
     vol_name = common.generate_volume_name()
     volume = client.create_volume(name=vol_name,
-                                  size=str(2*Gi), numberOfReplicas=nodes.__len__())
+                                  size=str(2*Gi),
+                                  numberOfReplicas=nodes.__len__())
     volume = common.wait_for_volume_condition_scheduled(client, vol_name,
                                                         "status",
                                                         CONDITION_STATUS_FALSE)
@@ -695,7 +698,8 @@ def test_node_controller_sync_storage_scheduled(client):  # NOQA
                 disk = disks.get(replica.get("diskID"))
                 conditions = disk.conditions
                 assert disk.storageScheduled == SMALL_DISK_SIZE
-                assert conditions.get(DISK_CONDITION_SCHEDULABLE).get("status") == \
+                assert conditions.get(
+                       DISK_CONDITION_SCHEDULABLE).get("status") == \
                     CONDITION_STATUS_TRUE
                 break
 
@@ -787,7 +791,8 @@ def test_node_controller_sync_disk_state(client):  # NOQA
         disks = node.disks
         for fsid, disk in iter(disks.items()):
             conditions = disk.conditions
-            assert conditions.get(DISK_CONDITION_SCHEDULABLE).get("status") == \
+            assert conditions.get(
+                   DISK_CONDITION_SCHEDULABLE).get("status") == \
                 CONDITION_STATUS_FALSE
 
     setting = client.update(setting, value=old_minimal_available_percentage)
@@ -806,7 +811,8 @@ def test_node_controller_sync_disk_state(client):  # NOQA
         disks = node.disks
         for fsid, disk in iter(disks.items()):
             conditions = disk.conditions
-            assert conditions.get(DISK_CONDITION_SCHEDULABLE).get("status") == \
+            assert conditions.get(
+                   DISK_CONDITION_SCHEDULABLE).get("status") == \
                 CONDITION_STATUS_TRUE
 
 
@@ -863,7 +869,8 @@ def test_node_delete_umount_disks(client):  # NOQA
             conditions = disk.conditions
             assert conditions.get(DISK_CONDITION_READY).get("status") == \
                 CONDITION_STATUS_TRUE
-            assert conditions.get(DISK_CONDITION_SCHEDULABLE).get("status") == \
+            assert conditions.get(
+                   DISK_CONDITION_SCHEDULABLE).get("status") == \
                 CONDITION_STATUS_TRUE
         else:
             assert not disk.allowScheduling
@@ -915,13 +922,15 @@ def test_node_delete_umount_disks(client):  # NOQA
             conditions = disk.conditions
             assert conditions.get(DISK_CONDITION_READY).get("status") == \
                 CONDITION_STATUS_FALSE
-            assert conditions.get(DISK_CONDITION_SCHEDULABLE).get("status") == \
+            assert conditions.get(
+                   DISK_CONDITION_SCHEDULABLE).get("status") == \
                 CONDITION_STATUS_FALSE
         else:
             conditions = disk.conditions
             assert conditions.get(DISK_CONDITION_READY).get("status") == \
                 CONDITION_STATUS_TRUE
-            assert conditions.get(DISK_CONDITION_SCHEDULABLE).get("status") == \
+            assert conditions.get(
+                   DISK_CONDITION_SCHEDULABLE).get("status") == \
                 CONDITION_STATUS_TRUE
             update_disks.append(disk)
 
