@@ -93,7 +93,7 @@ def csi_mount_test(client, core_api, csi_pv, pvc, pod_make,  # NOQA
                             pod_make, base_image, "")
 
     volumes = client.list_volume().data
-    assert volumes.__len__() == 1
+    assert len(volumes) == 1
     assert volumes[0].name == csi_pv['metadata']['name']
     assert volumes[0].size == str(volume_size)
     assert volumes[0].numberOfReplicas == \

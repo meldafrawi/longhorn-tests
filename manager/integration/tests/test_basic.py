@@ -51,12 +51,12 @@ def test_hosts(clients):  # NOQA
         assert host.address is not None
 
     host_id = []
-    for i in range(0, hosts.data.__len__()):
+    for i in range(0, len(hosts)):
         host_id.append(hosts.data[i].name)
 
     host0_from_i = {}
-    for i in range(0, hosts.data.__len__()):
-        if host0_from_i.__len__() == 0:
+    for i in range(0, len(hosts)):
+        if len(host0_from_i) == 0:
             host0_from_i = clients[host_id[0]].by_id_node(host_id[0])
         else:
             assert host0_from_i.name == \
@@ -168,7 +168,7 @@ def test_volume_basic(clients, volume_name):  # NOQA
 
 
 def volume_basic_test(clients, volume_name, base_image=""):  # NOQA
-    num_hosts = clients.__len__()
+    num_hosts = len(clients)
     num_replicas = 3
 
     # get a random client
@@ -197,7 +197,7 @@ def volume_basic_test(clients, volume_name, base_image=""):  # NOQA
         assert actual.created == expected.created
 
     volumes = client.list_volume().data
-    assert volumes.__len__() == 1
+    assert len(volumes) == 1
     validate_volume_basic(volume, volumes[0])
 
     volumeByName = client.by_id_volume(volume_name)
@@ -218,12 +218,12 @@ def volume_basic_test(clients, volume_name, base_image=""):  # NOQA
         assert id != ""
         hosts[id] = True
     if num_hosts >= num_replicas:
-        assert hosts.__len__() == num_replicas
+        assert len(hosts) == num_replicas
     else:
-        assert hosts.__len__() == num_hosts
+        assert len(hosts) == num_hosts
 
     volumes = client.list_volume().data
-    assert volumes.__len__() == 1
+    assert len(volumes) == 1
     assert volumes[0].name == volume.name
     assert volumes[0].size == volume.size
     assert volumes[0].numberOfReplicas == volume.numberOfReplicas
@@ -254,7 +254,7 @@ def volume_iscsi_basic_test(clients, volume_name, base_image=""):  # NOQA
     volume = common.wait_for_volume_healthy(client, volume_name)
 
     volumes = client.list_volume().data
-    assert volumes.__len__() == 1
+    assert len(volumes) == 1
     assert volumes[0].name == volume.name
     assert volumes[0].size == volume.size
     assert volumes[0].numberOfReplicas == volume.numberOfReplicas
@@ -329,15 +329,15 @@ def snapshot_test(clients, volume_name, base_image):  # NOQA
     assert snapMap[snap2.name].removed is False
     assert snapMap[snap3.name].name == snap3.name
     assert snapMap[snap3.name].parent == snap2.name
-    assert snapMap[snap3.name].children.__len__() == 1
+    assert len(snapMap[snap3.name].children) == 1
     assert "volume-head" in snapMap[snap3.name].children.keys()
     assert snapMap[snap3.name].removed is True
 
     snap = volume.snapshotGet(name=snap3.name)
     assert snap.name == snap3.name
     assert snap.parent == snap3.parent
-    assert snap3.children.__len__() == 1
-    assert snap.children.__len__() == 1
+    assert len(snap3.children) == 1
+    assert len(snap.children) == 1
     assert "volume-head" in snap3.children.keys()
     assert "volume-head" in snap.children.keys()
     assert snap.removed is True
@@ -382,7 +382,7 @@ def snapshot_test(clients, volume_name, base_image):  # NOQA
     assert snapMap[snap2.name].removed is False
     assert snapMap[snap3.name].name == snap3.name
     assert snapMap[snap3.name].parent == snap2.name
-    assert snapMap[snap3.name].children.__len__() == 0
+    assert len(snapMap[snap3.name].children) == 0
     assert snapMap[snap3.name].removed is True
 
     volume.snapshotDelete(name=snap1.name)
@@ -496,9 +496,9 @@ def backup_labels_test(clients, random_labels, volume_name, size=SIZE, base_imag
         if base_image:
             assert backup.labels.get(common.BASE_IMAGE_LABEL) == base_image
             # One extra Label from the BaseImage being set.
-            assert backup.labels.__len__() == len(random_labels) + 1
+            assert len(backup.labels) == len(random_labels) + 1
         else:
-            assert backup.labels.__len__() == len(random_labels)
+            assert len(backup.labels) == len(random_labels)
 
     cleanup_volume(client, volume)
 
@@ -525,7 +525,7 @@ def test_restoration_required_field(clients):  # NOQA
     volume = wait_for_volume_delete(client, volname)
 
     volumes = client.list_volume()
-    assert volumes.__len__() == 0
+    assert len(volumes) == 0
 
 
 def backupstore_test(client, host_id, volname, size):
@@ -658,14 +658,14 @@ def restore_inc_test(client, core_api, volume_name, pod):  # NOQA
     assert sb_engine1.requestedBackupRestore == backup0.name
     assert sb_volume2.standby is True
     assert sb_volume2.lastBackup == backup0.name
-    assert sb_volume2.frontend == ""
+    assert sb_volume2.disableFrontend is True
     assert sb_volume2.initialRestorationRequired is False
     sb_engine2 = get_volume_engine(sb_volume2)
     assert sb_engine2.lastRestoredBackup == backup0.name
     assert sb_engine2.requestedBackupRestore == backup0.name
 
     sb0_snaps = sb_volume0.snapshotList()
-    assert sb0_snaps.__len__() == 2
+    assert len(sb0_snaps) == 2
     for s in sb0_snaps:
         if s.name != "volume-head":
             sb0_snap = s
@@ -755,7 +755,7 @@ def restore_inc_test(client, core_api, volume_name, pod):  # NOQA
     workloads = k_status.workloadsStatus
     assert k_status.pvName == sb_volume2_name
     assert k_status.pvStatus == 'Bound'
-    assert workloads.__len__() == 1
+    assert len(workloads) == 1
     for i in range(RETRY_COUNTS):
         if workloads[0].podStatus == 'Running':
             break
@@ -763,7 +763,7 @@ def restore_inc_test(client, core_api, volume_name, pod):  # NOQA
         sb_volume2 = client.by_id_volume(sb_volume2_name)
         k_status = sb_volume2.kubernetesStatus
         workloads = k_status.workloadsStatus
-        assert workloads.__len__() == 1
+        assert len(workloads) == 1
     assert workloads[0].podName == sb_volume2_pod_name
     assert workloads[0].podStatus == 'Running'
     assert not workloads[0].workloadName
@@ -801,7 +801,7 @@ def restore_inc_test(client, core_api, volume_name, pod):  # NOQA
     wait_for_volume_delete(client, sb_volume2_name)
 
     volumes = client.list_volume()
-    assert volumes.__len__() == 0
+    assert len(volumes) == 0
 
 
 def test_deleting_backup_volume(clients):  # NOQA
@@ -965,7 +965,7 @@ def test_listing_backup_volume(clients, base_image=""):   # NOQA
     wait_for_volume_delete(client, volume3_name)
 
     volumes = client.list_volume()
-    assert volumes.__len__() == 0
+    assert len(volumes) == 0
 
 
 @pytest.mark.coretest   # NOQA
@@ -992,7 +992,7 @@ def test_volume_multinode(clients, volume_name):  # NOQA
     wait_for_volume_delete(get_random_client(clients), volume_name)
 
     volumes = get_random_client(clients).list_volume()
-    assert volumes.__len__() == 0
+    assert len(volumes) == 0
 
 
 @pytest.mark.coretest  # NOQA
@@ -1003,7 +1003,7 @@ def test_volume_scheduling_failure(clients, volume_name):  # NOQA
     '''
     client = get_random_client(clients)
     nodes = client.list_node()
-    assert nodes.__len__() > 0
+    assert len(nodes) > 0
 
     for node in nodes:
         node = client.update(node, allowScheduling=False)
@@ -1053,7 +1053,7 @@ def test_setting_default_replica_count(clients, volume_name):  # NOQA
 
     volume = client.create_volume(name=volume_name, size=SIZE)
     volume = common.wait_for_volume_detached(client, volume_name)
-    assert volume.replicas.__len__() == int(setting.value)
+    assert len(volume.replicas) == int(setting.value)
 
     client.delete(volume)
     wait_for_volume_delete(client, volume_name)
@@ -1076,13 +1076,13 @@ def test_volume_update_replica_count(clients, volume_name):  # NOQA
     volume = volume.updateReplicaCount(replicaCount=replica_count)
     volume = common.wait_for_volume_degraded(client, volume_name)
     volume = common.wait_for_volume_healthy(client, volume_name)
-    assert volume.replicas.__len__() == replica_count
+    assert len(volume.replicas) == replica_count
 
     old_replica_count = replica_count
     replica_count = 2
     volume = volume.updateReplicaCount(replicaCount=replica_count)
     volume = common.wait_for_volume_healthy(client, volume_name)
-    assert volume.replicas.__len__() == old_replica_count
+    assert len(volume.replicas) == old_replica_count
 
     volume.replicaRemove(name=volume.replicas[0].name)
     volume.replicaRemove(name=volume.replicas[1].name)
@@ -1091,7 +1091,7 @@ def test_volume_update_replica_count(clients, volume_name):  # NOQA
     volume = common.wait_for_volume_replica_count(client,
                                                   volume_name, replica_count)
     volume = common.wait_for_volume_healthy(client, volume_name)
-    assert volume.replicas.__len__() == replica_count
+    assert len(volume.replicas) == replica_count
 
     client.delete(volume)
     wait_for_volume_delete(client, volume_name)
@@ -1215,7 +1215,7 @@ def test_storage_class_from_backup(volume_name, pvc_name, storage_class, clients
         }
     }
 
-    volume_count = client.list_volume().__len__()
+    volume_count = len(client.list_volume())
 
     core_api.create_namespaced_persistent_volume_claim(
         'default',
@@ -1225,7 +1225,7 @@ def test_storage_class_from_backup(volume_name, pvc_name, storage_class, clients
     backup_volume_created = False
 
     for i in range(RETRY_COUNTS):
-        if client.list_volume().__len__() == volume_count + 1:
+        if len(client.list_volume()) == volume_count + 1:
             backup_volume_created = True
             break
         time.sleep(RETRY_INTERVAL)

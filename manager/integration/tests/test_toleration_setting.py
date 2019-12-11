@@ -19,7 +19,7 @@ def test_toleration_setting():
     client = get_longhorn_api_client()
     apps_api = get_apps_api_client()
     core_api = get_core_api_client()
-    count = client.list_node().__len__()
+    count = len(client.list_node())
 
     setting = client.by_id_setting(SETTING_TAINT_TOLERATION)
 
@@ -137,7 +137,7 @@ def wait_for_toleration_update(core_api, apps_api, count, set_tolerations):  # N
 
         client = get_longhorn_api_client()
         images = client.list_engine_image()
-        assert images.__len__() == 1
+        assert len(images) == 1
         if images.data[0].state != "ready":
             updated = False
             continue

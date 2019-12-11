@@ -97,7 +97,7 @@ def test_recurring_job(clients, volume_name):  # NOQA
     wait_for_volume_delete(client, volume_name)
 
     volumes = client.list_volume()
-    assert volumes.__len__() == 0
+    assert len(volumes) == 0
 
 
 @pytest.mark.recurring_job  # NOQA
@@ -132,7 +132,7 @@ def test_recurring_job_in_volume_creation(clients, volume_name):  # NOQA
     wait_for_volume_delete(client, volume_name)
 
     volumes = client.list_volume()
-    assert volumes.__len__() == 0
+    assert len(volumes) == 0
 
 
 @pytest.mark.recurring_job  # NOQA
@@ -198,7 +198,7 @@ def recurring_job_labels_test(client, labels, volume_name, size=SIZE, base_image
     # Verify the Labels on the actual Backup.
     bv = client.by_id_backupVolume(volume_name)
     backups = bv.backupList().data
-    assert backups.__len__() == 1
+    assert len(backups) == 1
 
     b = bv.backupGet(name=backups[0].name)
     for key, val in iter(labels.items()):
@@ -207,10 +207,10 @@ def recurring_job_labels_test(client, labels, volume_name, size=SIZE, base_image
     if base_image:
         assert b.labels.get(BASE_IMAGE_LABEL) == base_image
         # One extra Label from the BaseImage being set.
-        assert b.labels.__len__() == labels.__len__() + 2
+        assert len(b.labels) == len(labels) + 2
     else:
         # At least one extra Label from RecurringJob.
-        assert b.labels.__len__() == labels.__len__() + 1
+        assert len(b.labels) == len(labels) + 1
 
     cleanup_volume(client, volume)
 
@@ -266,7 +266,7 @@ def test_recurring_job_kubernetes_status(client, core_api, volume_name):  # NOQA
     # Verify the Labels on the actual Backup.
     bv = client.by_id_backupVolume(volume_name)
     backups = bv.backupList().data
-    assert backups.__len__() == 1
+    assert len(backups) == 1
 
     b = bv.backupGet(name=backups[0].name)
     status = json.loads(b.labels.get(KUBERNETES_STATUS_LABEL))
@@ -281,7 +281,7 @@ def test_recurring_job_kubernetes_status(client, core_api, volume_name):  # NOQA
         'workloadsStatus': None
     }
     # Two Labels: KubernetesStatus and RecurringJob.
-    assert b.labels.__len__() == 2
+    assert len(b.labels) == 2
 
     cleanup_volume(client, volume)
     delete_and_wait_pv(core_api, pv_name)

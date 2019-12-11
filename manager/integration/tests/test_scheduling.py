@@ -53,8 +53,8 @@ def wait_new_replica_ready(client, volume_name, replica_names):  # NOQA
     for _ in range(RETRY_COUNTS):
         v = client.by_id_volume(volume_name)
         for r in v.replicas:
-            if r.get('name') not in replica_names and r.get('running') and \
-                    r.get('mode') == "RW":
+            if r["name"] not in replica_names and r["running"] and \
+                    r["mode"] == "RW":
                 new_replica_ready = True
                 break
         if new_replica_ready:
@@ -75,7 +75,7 @@ def test_soft_anti_affinity_scheduling(client, volume_name):  # NOQA
     host_id = get_self_host_id()
     volume.attach(hostId=host_id)
     volume = wait_for_volume_healthy(client, volume_name)
-    assert volume.replicas.__len__() == 3
+    assert len(volume.replicas) == 3
 
     data = write_volume_random_data(volume)
     setting = client.by_id_setting(SETTING_REPLICA_SOFT_ANTI_AFFINITY)
@@ -88,7 +88,7 @@ def test_soft_anti_affinity_scheduling(client, volume_name):  # NOQA
     volume.replicaRemove(name=host_replica.name)
     wait_new_replica_ready(client, volume_name, replica_names)
     volume = wait_for_volume_healthy(client, volume_name)
-    assert volume.replicas.__len__() == 3
+    assert len(volume.replicas) == 3
     check_volume_data(volume, data)
 
     cleanup_volume(client, volume)
@@ -103,7 +103,7 @@ def test_soft_anti_affinity_detach(client, volume_name):  # NOQA
     host_id = get_self_host_id()
     volume.attach(hostId=host_id)
     volume = wait_for_volume_healthy(client, volume_name)
-    assert volume.replicas.__len__() == 3
+    assert len(volume.replicas) == 3
 
     data = write_volume_random_data(volume)
     setting = client.by_id_setting(SETTING_REPLICA_SOFT_ANTI_AFFINITY)
@@ -118,11 +118,11 @@ def test_soft_anti_affinity_detach(client, volume_name):  # NOQA
     volume = wait_for_volume_healthy(client, volume_name)
     volume.detach()
     volume = wait_for_volume_detached(client, volume_name)
-    assert volume.replicas.__len__() == 3
+    assert len(volume.replicas) == 3
 
     volume.attach(hostId=host_id)
     volume = wait_for_volume_healthy(client, volume_name)
-    assert volume.replicas.__len__() == 3
+    assert len(volume.replicas) == 3
     check_volume_data(volume, data)
 
     cleanup_volume(client, volume)
@@ -139,7 +139,7 @@ def test_hard_anti_affinity_scheduling(client, volume_name):  # NOQA
     host_id = get_self_host_id()
     volume.attach(hostId=host_id)
     volume = wait_for_volume_healthy(client, volume_name)
-    assert volume.replicas.__len__() == 3
+    assert len(volume.replicas) == 3
 
     data = write_volume_random_data(volume)
     setting = client.by_id_setting(SETTING_REPLICA_SOFT_ANTI_AFFINITY)
@@ -163,7 +163,7 @@ def test_hard_anti_affinity_scheduling(client, volume_name):  # NOQA
     assert sum([1 for replica in volume.replicas if
                 not replica.hostId]) == 1
     # Three replicas in total should still exist.
-    assert volume.replicas.__len__() == 3
+    assert len(volume.replicas) == 3
     check_volume_data(volume, data)
 
     cleanup_volume(client, volume)
@@ -178,7 +178,7 @@ def test_hard_anti_affinity_detach(client, volume_name):  # NOQA
     host_id = get_self_host_id()
     volume.attach(hostId=host_id)
     volume = wait_for_volume_healthy(client, volume_name)
-    assert volume.replicas.__len__() == 3
+    assert len(volume.replicas) == 3
 
     data = write_volume_random_data(volume)
     setting = client.by_id_setting(SETTING_REPLICA_SOFT_ANTI_AFFINITY)
@@ -192,7 +192,7 @@ def test_hard_anti_affinity_detach(client, volume_name):  # NOQA
     wait_scheduling_failure(client, volume_name)
     volume.detach()
     volume = wait_for_volume_detached(client, volume_name)
-    assert volume.replicas.__len__() == 2
+    assert len(volume.replicas) == 2
 
     volume.attach(hostId=host_id)
     # Make sure we're still not getting another successful replica.
@@ -202,7 +202,7 @@ def test_hard_anti_affinity_detach(client, volume_name):  # NOQA
                 replica.mode == "RW"]) == 2
     assert sum([1 for replica in volume.replicas if
                 not replica.hostId]) == 1
-    assert volume.replicas.__len__() == 3
+    assert len(volume.replicas) == 3
     check_volume_data(volume, data)
 
     cleanup_volume(client, volume)
@@ -222,7 +222,7 @@ def test_hard_anti_affinity_live_rebuild(client, volume_name):  # NOQA
     host_id = get_self_host_id()
     volume.attach(hostId=host_id)
     volume = wait_for_volume_healthy(client, volume_name)
-    assert volume.replicas.__len__() == 3
+    assert len(volume.replicas) == 3
 
     data = write_volume_random_data(volume)
     setting = client.by_id_setting(SETTING_REPLICA_SOFT_ANTI_AFFINITY)
@@ -239,7 +239,7 @@ def test_hard_anti_affinity_live_rebuild(client, volume_name):  # NOQA
     client.update(node, allowScheduling=True)
     wait_new_replica_ready(client, volume_name, replica_names)
     volume = wait_for_volume_healthy(client, volume_name)
-    assert volume.replicas.__len__() == 3
+    assert len(volume.replicas) == 3
     check_volume_data(volume, data)
 
     cleanup_volume(client, volume)
@@ -257,7 +257,7 @@ def test_hard_anti_affinity_offline_rebuild(client, volume_name):  # NOQA
     host_id = get_self_host_id()
     volume.attach(hostId=host_id)
     volume = wait_for_volume_healthy(client, volume_name)
-    assert volume.replicas.__len__() == 3
+    assert len(volume.replicas) == 3
 
     data = write_volume_random_data(volume)
     setting = client.by_id_setting(SETTING_REPLICA_SOFT_ANTI_AFFINITY)
@@ -276,7 +276,7 @@ def test_hard_anti_affinity_offline_rebuild(client, volume_name):  # NOQA
     volume.attach(hostId=host_id)
     wait_new_replica_ready(client, volume_name, replica_names)
     volume = wait_for_volume_healthy(client, volume_name)
-    assert volume.replicas.__len__() == 3
+    assert len(volume.replicas) == 3
     check_volume_data(volume, data)
 
     cleanup_volume(client, volume)

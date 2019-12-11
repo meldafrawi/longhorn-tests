@@ -35,7 +35,7 @@ def test_tag_basic(client):  # NOQA
     host_id = get_self_host_id()
     node = client.by_id_node(host_id)
     disks = get_update_disks(node.disks)
-    assert node.disks.__len__() == 1
+    assert len(node.disks) == 1
     assert disks[0].tags is None
     assert node.tags is None
 
@@ -121,7 +121,7 @@ def test_tag_scheduling(client, node_default_tags):  # NOQA
 
         volume.attach(hostId=host_id)
         volume = wait_for_volume_healthy(client, volume_name)
-        assert volume.replicas.__len__() == 3
+        assert len(volume.replicas) == 3
         check_volume_replicas(volume, specs, node_default_tags)
 
         cleanup_volume(client, volume)
@@ -175,7 +175,7 @@ def test_tag_scheduling_failure(client, node_default_tags):  # NOQA
         client.delete(volume)
         wait_for_volume_delete(client, volume.name)
         volumes = client.list_volume()
-        assert volumes.__len__() == 0
+        assert len(volumes) == 0
 
 
 def test_tag_scheduling_on_update(client, node_default_tags, volume_name):  # NOQA
@@ -220,7 +220,7 @@ def test_tag_scheduling_on_update(client, node_default_tags, volume_name):  # NO
         "disk": get_update_disks(node.disks)[0].tags,
         "node": node.tags
     } for node in nodes}
-    assert volume.replicas.__len__() == 3
+    assert len(volume.replicas) == 3
     check_volume_replicas(volume, tag_spec, node_mapping)
 
     cleanup_volume(client, volume)

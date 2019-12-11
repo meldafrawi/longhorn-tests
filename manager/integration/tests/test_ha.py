@@ -33,7 +33,7 @@ def ha_rebuild_replica_test(client, volname):   # NOQA
     volume = client.by_id_volume(volname)
     assert get_volume_endpoint(volume) == DEV_PATH + volname
 
-    assert volume.replicas.__len__() == 2
+    assert len(volume.replicas) == 2
     replica0 = volume.replicas[0]
     assert replica0.name != ""
 
@@ -63,7 +63,7 @@ def ha_rebuild_replica_test(client, volname):   # NOQA
     volume = client.by_id_volume(volname)
     assert volume.state == common.VOLUME_STATE_ATTACHED
     assert volume.robustness == common.VOLUME_ROBUSTNESS_HEALTHY
-    assert volume.replicas.__len__() >= 2
+    assert len(volume.replicas) >= 2
 
     found = False
     for replica in volume.replicas:
@@ -90,7 +90,7 @@ def ha_salvage_test(client, core_api,  # NOQA
     volume = volume.attach(hostId=host_id)
     volume = common.wait_for_volume_healthy(client, volume_name)
 
-    assert volume.replicas.__len__() == 2
+    assert len(volume.replicas) == 2
     replica0_name = volume.replicas[0].name
     replica1_name = volume.replicas[1].name
 
@@ -99,14 +99,14 @@ def ha_salvage_test(client, core_api,  # NOQA
     delete_replica_processes(client, core_api, volume_name)
 
     volume = common.wait_for_volume_faulted(client, volume_name)
-    assert volume.replicas.__len__() == 2
+    assert len(volume.replicas) == 2
     assert volume.replicas[0].failedAt != ""
     assert volume.replicas[1].failedAt != ""
 
     volume.salvage(names=[replica0_name, replica1_name])
 
     volume = common.wait_for_volume_detached_unknown(client, volume_name)
-    assert volume.replicas.__len__() == 2
+    assert len(volume.replicas) == 2
     assert volume.replicas[0].failedAt == ""
     assert volume.replicas[1].failedAt == ""
 
@@ -123,7 +123,7 @@ def ha_salvage_test(client, core_api,  # NOQA
     volume.attach(hostId=host_id)
     volume = common.wait_for_volume_healthy(client, volume_name)
 
-    assert volume.replicas.__len__() == 2
+    assert len(volume.replicas) == 2
     replica0_name = volume.replicas[0].name
     replica1_name = volume.replicas[1].name
 
@@ -132,14 +132,14 @@ def ha_salvage_test(client, core_api,  # NOQA
     crash_replica_processes(client, core_api, volume_name)
 
     volume = common.wait_for_volume_faulted(client, volume_name)
-    assert volume.replicas.__len__() == 2
+    assert len(volume.replicas) == 2
     assert volume.replicas[0].failedAt != ""
     assert volume.replicas[1].failedAt != ""
 
     volume.salvage(names=[replica0_name, replica1_name])
 
     volume = common.wait_for_volume_detached_unknown(client, volume_name)
-    assert volume.replicas.__len__() == 2
+    assert len(volume.replicas) == 2
     assert volume.replicas[0].failedAt == ""
     assert volume.replicas[1].failedAt == ""
 
@@ -207,7 +207,7 @@ def ha_backup_deletion_recovery_test(client, volume_name, size, base_image=""): 
 
         snapshots = res_volume.snapshotList()
         # only the backup snapshot + volume-head
-        assert snapshots.__len__() == 2
+        assert len(snapshots) == 2
         backup_snapshot = ""
         for snap in snapshots:
             if snap.name != "volume-head":
@@ -216,7 +216,7 @@ def ha_backup_deletion_recovery_test(client, volume_name, size, base_image=""): 
 
         create_snapshot(client, res_name)
         snapshots = res_volume.snapshotList()
-        assert snapshots.__len__() == 3
+        assert len(snapshots) == 3
 
         res_volume.snapshotDelete(name=backup_snapshot)
         res_volume.snapshotPurge()
@@ -224,7 +224,7 @@ def ha_backup_deletion_recovery_test(client, volume_name, size, base_image=""): 
                                              backup_snapshot)
 
         snapshots = res_volume.snapshotList()
-        assert snapshots.__len__() == 2
+        assert len(snapshots) == 2
 
         ha_rebuild_replica_test(client, res_name)
 
@@ -245,7 +245,7 @@ def test_ha_prohibit_deleting_last_replica(client, volume_name):  # NOQA
     volume = volume.attach(hostId=host_id)
     volume = common.wait_for_volume_healthy(client, volume_name)
 
-    assert volume.replicas.__len__() == 1
+    assert len(volume.replicas) == 1
     replica0 = volume.replicas[0]
 
     with pytest.raises(Exception) as e:

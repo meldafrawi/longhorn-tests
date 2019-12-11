@@ -177,7 +177,7 @@ def cleanup_volume(client, volume):
     client.delete(volume)
     wait_for_volume_delete(client, volume.name)
     volumes = client.list_volume()
-    assert volumes.__len__() == 0
+    assert len(volumes) == 0
 
 
 def create_backup(client, volname, data={}, labels={}):
@@ -941,11 +941,11 @@ def node_default_tags():
     """
     client = get_longhorn_api_client()  # NOQA
     nodes = client.list_node()
-    assert nodes.__len__() == 3
+    assert len(nodes) == 3
 
     tag_mappings = {}
     for tags, node in zip(DEFAULT_TAGS, nodes):
-        assert node.disks.__len__() == 1
+        assert len(node.disks) == 1
 
         update_disks = get_update_disks(node.disks)
         update_disks[0].tags = tags["disk"]
@@ -996,7 +996,7 @@ def client(request):
     ips = get_mgr_ips()
     client = get_client(ips[0] + PORT)
     hosts = client.list_node().data
-    assert hosts.__len__() == ips.__len__()
+    assert len(hosts) == len(ips)
 
     request.addfinalizer(lambda: cleanup_client(client))
 
@@ -1011,7 +1011,7 @@ def clients(request):
     ips = get_mgr_ips()
     client = get_client(ips[0] + PORT)
     hosts = client.list_node().data
-    assert hosts.__len__() == ips.__len__()
+    assert len(hosts) == len(ips)
     clis = get_clients(hosts)
 
     def finalizer():
@@ -1086,7 +1086,7 @@ def get_backupstore_url():
     backupstore = backupstore.replace(" ", "")
     backupstores = backupstore.split(",")
 
-    assert backupstores.__len__() != 0
+    assert len(backupstores) != 0
     return backupstores
 
 
@@ -1284,10 +1284,10 @@ def wait_for_volume_replica_count(client, name, count):
     wait_for_volume_creation(client, name)
     for i in range(RETRY_COUNTS):
         volume = client.by_id_volume(name)
-        if volume.replicas.__len__() == count:
+        if len(volume.replicas) == count:
             break
         time.sleep(RETRY_INTERVAL)
-    assert volume.replicas.__len__() == count
+    assert len(volume.replicas) == count
     return volume
 
 
@@ -1578,7 +1578,7 @@ def dev_write(dev, start, data):
         fdev.seek(start)
         fdev.write(data)
         fdev.close()
-        w_length = data.__len__()
+        w_length = len(data)
     return w_length
 
 
@@ -1814,16 +1814,16 @@ def wait_for_node_update(client, name, key, value):
 def wait_for_disk_update(client, name, disk_num):
     for i in range(RETRY_COUNTS):
         node = client.by_id_node(name)
-        if node.disks.__len__() == disk_num:
+        if len(node.disks) == disk_num:
             break
         time.sleep(RETRY_INTERVAL)
-    assert node.disks.__len__() == disk_num
+    assert len(node.disks) == disk_num
     return node
 
 
 def get_volume_engine(v):
     engines = v.controllers
-    assert engines.__len__() != 0
+    assert len(engines) != 0
     return engines[0]
 
 
@@ -1873,10 +1873,10 @@ def monitor_restore_progress(client, volume_name):
             if r.state == "complete":
                 assert r.progress == 100
                 completed += 1
-        if completed == rs.__len__():
+        if completed == len(rs):
             break
         time.sleep(RETRY_INTERVAL)
-    assert completed == rs.__len__()
+    assert completed == len(rs)
     return v
 
 
@@ -1885,7 +1885,7 @@ def wait_for_volume_migration_ready(client, volume_name):
         v = client.by_id_volume(volume_name)
         engines = v.controllers
         ready = True
-        if engines.__len__() == 2:
+        if len(engines) == 2:
             for e in v.controllers:
                 if e.endpoint == "":
                     ready = False
@@ -1904,7 +1904,7 @@ def wait_for_volume_migration_node(client, volume_name, node_id):
         v = client.by_id_volume(volume_name)
         engines = v.controllers
         replicas = v.replicas
-        if engines.__len__() == 1 and replicas.__len__() == v.numberOfReplicas:
+        if len(engines) == 1 and len(replicas) == v.numberOfReplicas:
             e = engines[0]
             if e.endpoint != "":
                 break
@@ -1987,11 +1987,11 @@ def cleanup_test_disks(client):
 def reset_disks_for_all_nodes(client):  # NOQA
     nodes = client.list_node()
     for node in nodes:
-        if node.disks.__len__() == 0:
+        if len(node.disks) == 0:
             default_disk = {"path": DEFAULT_DISK_PATH, "allowScheduling": True}
             node = node.diskUpdate(disks=[default_disk])
             node = wait_for_disk_update(client, node.name, 1)
-            assert(node.disks.__len__()) == 1
+            assert len(node.disks) == 1
         # wait for node controller to update disk status
         disks = node.disks
         update_disks = []
@@ -2452,7 +2452,7 @@ def activate_standby_volume(client, volume_name, frontend="blockdev"):
     for i in range(RETRY_COUNTS):
         volume = client.by_id_volume(volume_name)
         engines = volume.controllers
-        if engines.__len__() != 1 or \
+        if len(engines) != 1 or \
                 engines[0].lastRestoredBackup != volume.lastBackup:
             time.sleep(RETRY_INTERVAL)
             continue

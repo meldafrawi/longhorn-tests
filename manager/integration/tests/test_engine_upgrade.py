@@ -20,7 +20,7 @@ def test_engine_image(client, core_api, volume_name):  # NOQA
     default_img = wait_for_engine_image_ref_count(client, default_img_name, 0)
 
     images = client.list_engine_image()
-    assert images.__len__() == 1
+    assert len(images) == 1
     assert images.data[0].default
     assert images.data[0].state == "ready"
     assert images.data[0].refCount == 0
@@ -257,7 +257,7 @@ def engine_live_upgrade_test(client, core_api, volume_name, base_image=""):  # N
 
     volume = volume.detach()
     volume = common.wait_for_volume_detached(client, volume_name)
-    assert volume.replicas.__len__() == REPLICA_COUNT
+    assert len(volume.replicas) == REPLICA_COUNT
     assert volume.engineImage == engine_upgrade_image
     engine = get_volume_engine(volume)
     assert engine.engineImage == engine_upgrade_image
@@ -302,7 +302,7 @@ def engine_live_upgrade_test(client, core_api, volume_name, base_image=""):  # N
 
     volume = volume.detach()
     volume = common.wait_for_volume_detached(client, volume_name)
-    assert volume.replicas.__len__() == REPLICA_COUNT
+    assert len(volume.replicas) == REPLICA_COUNT
 
     assert volume.engineImage == original_engine_image
     engine = get_volume_engine(volume)
@@ -319,7 +319,7 @@ def engine_live_upgrade_test(client, core_api, volume_name, base_image=""):  # N
 
 def test_engine_image_incompatible(client, core_api, volume_name):  # NOQA
     images = client.list_engine_image()
-    assert images.__len__() == 1
+    assert len(images) == 1
     assert images.data[0].default
     assert images.data[0].state == "ready"
 

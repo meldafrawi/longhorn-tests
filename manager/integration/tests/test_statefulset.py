@@ -103,7 +103,7 @@ def test_statefulset_mount(client, core_api, storage_class, statefulset):  # NOQ
     pod_info = get_statefulset_pod_info(core_api, statefulset)
 
     volumes = client.list_volume()
-    assert volumes.__len__() == statefulset['spec']['replicas']
+    assert len(volumes) == statefulset['spec']['replicas']
     for v in volumes:
         # Workaround for checking volume name since they differ per pod.
         found = False
@@ -137,7 +137,7 @@ def test_statefulset_scaling(client, core_api, storage_class, statefulset):  # N
     pod_info = get_statefulset_pod_info(core_api, statefulset)
 
     volumes = client.list_volume()
-    assert volumes.__len__() == statefulset['spec']['replicas']
+    assert len(volumes) == statefulset['spec']['replicas']
     for v in volumes:
         found = False
         for pod in pod_info:
@@ -175,7 +175,7 @@ def test_statefulset_scaling(client, core_api, storage_class, statefulset):  # N
     pod_info = get_statefulset_pod_info(core_api, statefulset)
 
     volumes = client.list_volume()
-    assert volumes.__len__() == replicas
+    assert len(volumes) == replicas
     for v in volumes:
         found = False
         for pod in pod_info:

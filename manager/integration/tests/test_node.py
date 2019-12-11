@@ -86,7 +86,7 @@ def cleanup_host_disk(client, *args):  # NOQA
 def test_update_node(client):  # NOQA
     # test node update
     nodes = client.list_node()
-    assert nodes.__len__() > 0
+    assert len(nodes) > 0
 
     lht_hostId = get_self_host_id()
     node = client.by_id_node(lht_hostId)
@@ -153,9 +153,9 @@ def test_node_disk_update(client):  # NOQA
     node = node.diskUpdate(disks=update_disk)
     node = common.wait_for_disk_update(client, lht_hostId,
                                        len(update_disk))
-    assert node.disks.__len__() == len(update_disk)
+    assert len(node.disks) == len(update_disk)
     node = client.by_id_node(lht_hostId)
-    assert node.disks.__len__() == len(update_disk)
+    assert len(node.disks) == len(update_disk)
 
     # update disk
     disks = node.disks
@@ -205,7 +205,7 @@ def test_node_disk_update(client):  # NOQA
     node = node.diskUpdate(disks=remain_disk)
     node = wait_for_disk_update(client, lht_hostId,
                                 len(remain_disk))
-    assert node.disks.__len__() == len(remain_disk)
+    assert len(node.disks) == len(remain_disk)
     # cleanup disks
     cleanup_host_disk(client, 'vol-disk-1', 'vol-disk-2')
 
@@ -217,7 +217,7 @@ def create_volume(client, vol_name, size, node_id, r_num):  # NOQA
     assert volume.frontend == "blockdev"
 
     volume = common.wait_for_volume_detached(client, vol_name)
-    assert volume.replicas.__len__() == r_num
+    assert len(volume.replicas) == r_num
 
     assert volume.state == "detached"
     assert volume.created != ""
@@ -267,12 +267,12 @@ def test_replica_scheduler_no_disks(client):  # NOQA
             assert not disk.allowScheduling
         node = node.diskUpdate(disks=[])
         node = common.wait_for_disk_update(client, name, 0)
-        assert node.disks.__len__() == 0
+        assert len(node.disks) == 0
 
     # test there's no disk fit for volume
     vol_name = common.generate_volume_name()
     volume = client.create_volume(name=vol_name,
-                                  size=SIZE, numberOfReplicas=nodes.__len__())
+                                  size=SIZE, numberOfReplicas=len(nodes))
     volume = common.wait_for_volume_condition_scheduled(client, vol_name,
                                                         "status",
                                                         CONDITION_STATUS_FALSE)
@@ -295,7 +295,7 @@ def test_replica_scheduler_large_volume_fit_small_disk(client):  # NOQA
     node = node.diskUpdate(disks=update_disks)
     node = common.wait_for_disk_update(client, lht_hostId,
                                        len(update_disks))
-    assert node.disks.__len__() == len(update_disks)
+    assert len(node.disks) == len(update_disks)
 
     unexpected_disk = {}
     for fsid, disk in iter(node.disks.items()):
@@ -310,7 +310,7 @@ def test_replica_scheduler_large_volume_fit_small_disk(client):  # NOQA
                            vol_name,
                            str(Gi),
                            lht_hostId,
-                           nodes.__len__())
+                           len(nodes))
 
     nodes = client.list_node()
     node_hosts = []
@@ -370,7 +370,7 @@ def test_replica_scheduler_too_large_volume_fit_any_disks(client):  # NOQA
     volume_size = 4 * Gi
     vol_name = common.generate_volume_name()
     client.create_volume(name=vol_name, size=str(volume_size),
-                         numberOfReplicas=nodes.__len__())
+                         numberOfReplicas=len(nodes))
     volume = common.wait_for_volume_condition_scheduled(client, vol_name,
                                                         "status",
                                                         CONDITION_STATUS_FALSE)
@@ -446,7 +446,7 @@ def test_replica_scheduler_update_over_provisioning(client):  # NOQA
                                               value="0")
     vol_name = common.generate_volume_name()
     volume = client.create_volume(name=vol_name,
-                                  size=SIZE, numberOfReplicas=nodes.__len__())
+                                  size=SIZE, numberOfReplicas=len(nodes))
     volume = common.wait_for_volume_condition_scheduled(client, vol_name,
                                                         "status",
                                                         CONDITION_STATUS_FALSE)
@@ -513,7 +513,7 @@ def test_replica_scheduler_exceed_over_provisioning(client):  # NOQA
     vol_name = common.generate_volume_name()
     volume = client.create_volume(name=vol_name,
                                   size=str(2*Gi),
-                                  numberOfReplicas=nodes.__len__())
+                                  numberOfReplicas=len(nodes))
     volume = common.wait_for_volume_condition_scheduled(client, vol_name,
                                                         "status",
                                                         CONDITION_STATUS_FALSE)
@@ -556,7 +556,7 @@ def test_replica_scheduler_just_under_over_provisioning(client):  # NOQA
     vol_name = common.generate_volume_name()
     volume = client.create_volume(name=vol_name,
                                   size=str(max_size),
-                                  numberOfReplicas=nodes.__len__())
+                                  numberOfReplicas=len(nodes))
     volume = common.wait_for_volume_condition_scheduled(client, vol_name,
                                                         "status",
                                                         CONDITION_STATUS_TRUE)
@@ -618,7 +618,7 @@ def test_replica_scheduler_update_minimal_available(client):  # NOQA
     lht_hostId = get_self_host_id()
     vol_name = common.generate_volume_name()
     volume = client.create_volume(name=vol_name,
-                                  size=SIZE, numberOfReplicas=nodes.__len__())
+                                  size=SIZE, numberOfReplicas=len(nodes))
     volume = common.wait_for_volume_condition_scheduled(client, vol_name,
                                                         "status",
                                                         CONDITION_STATUS_FALSE)
@@ -676,7 +676,7 @@ def test_node_controller_sync_storage_scheduled(client):  # NOQA
     # create a volume and test update StorageScheduled of each node
     vol_name = common.generate_volume_name()
     volume = create_volume(client, vol_name, str(SMALL_DISK_SIZE),
-                           lht_hostId, nodes.__len__())
+                           lht_hostId, len(nodes))
     replicas = volume.replicas
     for replica in replicas:
         id = replica.hostId
@@ -720,7 +720,7 @@ def test_node_controller_sync_storage_available(client):  # NOQA
     update_disks.append(test_disk)
     node = node.diskUpdate(disks=update_disks)
     node = common.wait_for_disk_update(client, lht_hostId, len(update_disks))
-    assert node.disks.__len__() == len(update_disks)
+    assert len(node.disks) == len(update_disks)
 
     # write specified byte data into disk
     test_file_path = os.path.join(test_disk_path, TEST_FILE)
@@ -764,7 +764,7 @@ def test_node_controller_sync_storage_available(client):  # NOQA
     update_disks = get_update_disks(disks)
     node = node.diskUpdate(disks=update_disks)
     node = wait_for_disk_update(client, lht_hostId, len(update_disks))
-    assert node.disks.__len__() == len(update_disks)
+    assert len(node.disks) == len(update_disks)
     cleanup_host_disk(client, 'vol-test')
 
 
@@ -838,9 +838,9 @@ def test_node_delete_umount_disks(client):  # NOQA
     node = node.diskUpdate(disks=update_disk)
     node = common.wait_for_disk_update(client, lht_hostId,
                                        len(update_disk))
-    assert node.disks.__len__() == len(update_disk)
+    assert len(node.disks) == len(update_disk)
     node = client.by_id_node(lht_hostId)
-    assert node.disks.__len__() == len(update_disk)
+    assert len(node.disks) == len(update_disk)
 
     disks = node.disks
     # wait for node controller to update disk status
@@ -879,7 +879,7 @@ def test_node_delete_umount_disks(client):  # NOQA
     nodes = client.list_node()
     vol_name = common.generate_volume_name()
     volume = create_volume(client, vol_name, str(SMALL_DISK_SIZE),
-                           lht_hostId, nodes.__len__())
+                           lht_hostId, len(nodes))
     replicas = volume.replicas
     for replica in replicas:
         id = replica.hostId
@@ -1024,7 +1024,7 @@ def test_node_delete_umount_disks(client):  # NOQA
     node.diskUpdate(disks=update_disks)
     node = common.wait_for_disk_update(client, lht_hostId,
                                        len(update_disks))
-    assert node.disks.__len__() == len(update_disks)
+    assert len(node.disks) == len(update_disks)
     cmd = ['rm', '-r', mount_path]
     subprocess.check_call(cmd)
 
@@ -1045,7 +1045,7 @@ def test_replica_cleanup(client):  # NOQA
     node = node.diskUpdate(disks=update_disks)
     node = common.wait_for_disk_update(client, lht_hostId,
                                        len(update_disks))
-    assert node.disks.__len__() == len(update_disks)
+    assert len(node.disks) == len(update_disks)
 
     extra_disk_fsid = ""
     for fsid, disk in iter(node.disks.items()):
@@ -1123,7 +1123,7 @@ def test_node_default_disk_labeled(client, core_api, random_disk_path,  reset_de
         "unlabeled": None
     }
     nodes = client.list_node().data
-    assert nodes.__len__() >= 3
+    assert len(nodes) >= 3
 
     node = nodes[0]
     cases["disk_exists"] = node.id
@@ -1171,12 +1171,12 @@ def test_node_default_disk_labeled(client, core_api, random_disk_path,  reset_de
 
     # Check each case.
     node = client.by_id_node(cases["disk_exists"])
-    assert node.disks.__len__() == 1
+    assert len(node.disks) == 1
     assert get_update_disks(node.disks)[0].path == \
         DEFAULT_DISK_PATH
 
     node = client.by_id_node(cases["labeled"])
-    assert node.disks.__len__() == 1
+    assert len(node.disks) == 1
     assert get_update_disks(node.disks)[0].path == \
         random_disk_path
 
@@ -1193,7 +1193,7 @@ def test_node_default_disk_labeled(client, core_api, random_disk_path,  reset_de
     wait_for_disk_update(client, node.id, 0)
 
     node = client.by_id_node(cases["unlabeled"])
-    assert node.disks.__len__() == 0
+    assert len(node.disks) == 0
 
 
 @pytest.mark.node  # NOQA

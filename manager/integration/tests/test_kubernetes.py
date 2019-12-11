@@ -101,7 +101,7 @@ def test_kubernetes_status(client, core_api, storage_class,  # NOQA
         assert not k_status.lastPVCRefAt
         assert not k_status.lastPodRefAt
         if i == 0:
-            assert workloads.__len__() == 1
+            assert len(workloads) == 1
             assert workloads[0].podName == p['pod_name']
             assert workloads[0].workloadName == statefulset_name
             assert workloads[0].workloadType == 'StatefulSet'
@@ -136,7 +136,7 @@ def test_kubernetes_status(client, core_api, storage_class,  # NOQA
                 volume = client.by_id_volume(volume_name)
                 k_status = volume.kubernetesStatus
                 workloads = k_status.workloadsStatus
-                assert workloads.__len__() == 2
+                assert len(workloads) == 2
             assert workloads[0].podStatus == 'Running'
             assert workloads[1].podStatus == 'Running'
 

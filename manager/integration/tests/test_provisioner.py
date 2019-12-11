@@ -49,7 +49,7 @@ def test_provisioner_mount(client, core_api, storage_class, pvc, pod):  # NOQA
 
     # Confirm that the volume has all the correct parameters we gave it.
     volumes = client.list_volume()
-    assert volumes.__len__() == 1
+    assert len(volumes) == 1
     assert volumes.data[0].name == pvc_volume_name
     assert volumes.data[0].size == str(volume_size)
     assert volumes.data[0].numberOfReplicas == \
@@ -88,7 +88,7 @@ def test_provisioner_params(client, core_api, storage_class, pvc, pod):  # NOQA
 
     # Confirm that the volume has all the correct parameters we gave it.
     volumes = client.list_volume()
-    assert volumes.__len__() == 1
+    assert len(volumes) == 1
     assert volumes.data[0].name == pvc_volume_name
     assert volumes.data[0].size == str(volume_size)
     assert volumes.data[0].numberOfReplicas == \
@@ -161,7 +161,7 @@ def test_provisioner_tags(client, core_api, node_default_tags, storage_class, pv
 
     # Confirm that the volume has all the correct parameters we gave it.
     volumes = client.list_volume()
-    assert volumes.__len__() == 1
+    assert len(volumes) == 1
     assert volumes.data[0].name == pvc_volume_name
     assert volumes.data[0].size == str(volume_size)
     assert volumes.data[0].numberOfReplicas == \
