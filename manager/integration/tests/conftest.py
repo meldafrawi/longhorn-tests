@@ -13,6 +13,7 @@ INCLUDE_BASE_IMAGE_OPT = "--include-base-image-test"
 SKIP_RECURRING_JOB_OPT = "--skip-recurring-job-test"
 INCLUDE_INFRA_OPT = "--include-infra-test"
 INCLUDE_STRESS_OPT = "--include-stress-test"
+INCLUDE_UPGRADE_OPT = "--include-upgrade-test"
 UPGRADE_IMAGE_TAG = "--upgrade-image-tag"
 
 
@@ -30,6 +31,10 @@ def pytest_addoption(parser):
     parser.addoption(INCLUDE_STRESS_OPT, action="store_true",
                      default=False,
                      help="include stress tests (default: False)")
+
+    parser.addoption(INCLUDE_UPGRADE_OPT, action="store_true",
+                     default=False,
+                     help="include upgrade tests (default: False)")
 
     parser.addoption(UPGRADE_IMAGE_TAG, action="store",
                      default="master",
@@ -124,3 +129,12 @@ def pytest_collection_modifyitems(config, items):
         for item in items:
             if "stress" in item.keywords:
                 item.add_marker(skip_stress)
+
+    if not config.getoption(INCLUDE_UPGRADE_OPT):
+        skip_stress = pytest.mark.skip(reason="include " +
+                                       INCLUDE_UPGRADE_OPT +
+                                       " option to run")
+
+        for item in items:
+            if "upgrade" in item.keywords:
+                item.add_marker(skip_upgrade)
