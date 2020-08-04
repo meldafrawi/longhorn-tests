@@ -47,6 +47,7 @@ node {
                 //sh "docker rmi ${imageName}"
                 if(summary){
                     summary_msg = "\nTest Summary - Failures: ${summary.failCount}, Skipped: ${summary.skipCount}, Passed: ${summary.passCount}  -- Job completed in ${currentBuild.durationString.replace(' and counting', '')}"
+                    echo "${summary_msg}"
                 }
                 else{
                     summary_msg = "\n Test Failed: No Junit report"
