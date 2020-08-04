@@ -93,7 +93,7 @@ if [[ "${LONGHORN_INFRA_TEST}" == true || "${LONGHORN_INFRA_TEST}" == True  ]] ;
 
 else
   # generate test pod manifest
-  sed -i 's/#TEST_FRAMEWORK_ARGS_PLACEHOLDER/args:\ \[\ \"\-s\"\ ,\ \"\-\-junitxml=\$\{LONGHORN_JUNIT_REPORT_PATH\}" \]/' "${WORKSPACE}/manager/integration/deploy/test.yaml"
+  sed -i 's/#TEST_FRAMEWORK_ARGS_PLACEHOLDER/args:\ \[\ \"\-s\"\ ,\ \"\-\-junitxml=\$\{LONGHORN_JUNIT_REPORT_PATH\}", \" \-k test_volume_basic \" \]/' "${WORKSPACE}/manager/integration/deploy/test.yaml"
 fi
 
 sed  -i 's/longhornio\/longhorn-manager-test:.*$/longhornio\/longhorn-manager-test:master/' "${WORKSPACE}/manager/integration/deploy/test.yaml"
